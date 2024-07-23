@@ -73,7 +73,7 @@ jobs:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
                   gh release create ${{ github.ref_name }} \
-                    --repo kfsoftware/fabriclaunch-releases \
+                    --repo kfsoftware/fabriclaunch \
                     --target=main \
                     --title "Release ${{ github.ref_name }}" \
                     --notes="example notes" 
@@ -85,7 +85,7 @@ jobs:
                   for file in fabriclaunch-*; do
                     echo "Uploading $file"
                     gh release upload ${{ github.ref_name }} "$file/$file" \
-                      --repo kfsoftware/fabriclaunch-releases \
+                      --repo kfsoftware/fabriclaunch \
                       --clobber
                   done
 
@@ -100,5 +100,5 @@ jobs:
               run: |
                   echo "Uploading SHA256SUMS.txt"
                   gh release upload ${{ github.ref_name }} SHA256SUMS.txt \
-                    --repo kfsoftware/fabriclaunch-release \
+                    --repo kfsoftware/fabriclaunch \
                     --clobber
