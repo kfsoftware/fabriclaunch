@@ -62,7 +62,7 @@ const config: Config = {
       theme: { light: 'neutral', dark: 'forest' },
     },
     // Replace with your project's social card
-    image: 'img/docusaurus-social-card.jpg',
+    image: 'img/fabriclaunch_social.png',
     navbar: {
       title: 'FabricLaunch',
       logo: {
