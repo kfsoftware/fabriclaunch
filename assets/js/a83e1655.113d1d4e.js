@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkfabriclaunch_docs=self.webpackChunkfabriclaunch_docs||[]).push([[5547],{3804:a=>{a.exports=JSON.parse('{"metadata":{"permalink":"/fabriclaunch/blog","page":1,"postsPerPage":10,"totalPages":1,"totalCount":4,"blogDescription":"Blog","blogTitle":"Blog"}}')}}]);
