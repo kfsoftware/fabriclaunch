@@ -2,7 +2,7 @@
 sidebar_position: 1
 ---
 
-# Introduction to FabricLaunch
+# Introduction to FabricLaunch222
 
 ## The Onboarding Challenge
 
@@ -155,11 +155,4 @@ We focus on baremetal deployment because:
 
 ## Next Steps
 
-To start using FabricLaunch, proceed to our [Quick Start Guide](link-to-quick-start-guide) for step-by-step instructions on installation and initial setup.
-
-For more detailed information on specific features and components, explore our documentation sections:
-
-- [CLI Reference](link-to-cli-reference)
-- [Platform Overview](link-to-platform-overview)
-- [Configuration Guide](link-to-configuration-guide)
-- [Troubleshooting](link-to-troubleshooting)
+Coming soon: FabricLaunch CLI installation and usage instructions. Stay tuned!

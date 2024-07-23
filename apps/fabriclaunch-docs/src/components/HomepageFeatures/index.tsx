@@ -10,7 +10,7 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
 	{
-		title: 'Decentralized',
+		title: 'Decentralized12',
 		// Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
 		Svg: Network,
 		description: <>Spread onboarding tasks across your organization. Reduce bottlenecks</>,

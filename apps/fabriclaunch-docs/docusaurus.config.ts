@@ -67,7 +67,7 @@ const config: Config = {
       title: 'FabricLaunch',
       logo: {
         alt: 'FabricLaunch',
-        src: 'img/logo.svg',
+        src: 'img/fabriclaunch_2.jpeg',
       },
       items: [
         {
