@@ -100,5 +100,5 @@ jobs:
               run: |
                   echo "Uploading SHA256SUMS.txt"
                   gh release upload ${{ github.ref_name }} SHA256SUMS.txt \
-                    --repo kfsoftware/fabriclaunch-release \
+                    --repo kfsoftware/fabriclaunch \
                     --clobber
