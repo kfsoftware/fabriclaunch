@@ -1,0 +1,8 @@
+mutation importOrderer($input: OrdererImportInput!) {
+	importOrderer(input: $input) {
+		id
+		mspId
+		signCert
+		tlsCert
+	}
+}

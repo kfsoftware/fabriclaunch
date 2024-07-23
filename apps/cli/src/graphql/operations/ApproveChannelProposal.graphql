@@ -1,0 +1,7 @@
+mutation ApproveChannelProposal($input: ApproveProposalInput!) {
+	approveChannelProposal(input: $input) {
+		id
+		proposalId
+		approvedAt
+	}
+}

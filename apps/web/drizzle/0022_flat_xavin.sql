@@ -1,0 +1,1 @@
+ALTER TABLE "user_request_login" ADD COLUMN "token" text;

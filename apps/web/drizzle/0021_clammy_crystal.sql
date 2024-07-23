@@ -1,0 +1,1 @@
+ALTER TABLE "chaincode_proposal" ADD COLUMN "sequence" integer DEFAULT 1 NOT NULL;

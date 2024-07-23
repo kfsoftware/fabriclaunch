@@ -1,0 +1,1 @@
+ALTER TABLE "organization" ADD CONSTRAINT "idx_tenant_id_msp_id" UNIQUE("tenant_id","msp_id");

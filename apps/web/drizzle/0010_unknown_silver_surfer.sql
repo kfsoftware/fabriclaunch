@@ -1,0 +1,1 @@
+ALTER TABLE "organization" ALTER COLUMN "tenant_id" SET NOT NULL;

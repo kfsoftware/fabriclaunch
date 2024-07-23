@@ -1,0 +1,12 @@
+query GetChaincodeProposal($tenantSlug: String!, $proposalSlug: String!) {
+	proposal: chaincodeProposal(proposalSlug: $proposalSlug, tenantSlug: $tenantSlug) {
+		id
+		channelName
+		chaincodeName
+		version
+		sequence
+		endorsementPolicy
+		pdc
+		codeZipHash
+	}
+}

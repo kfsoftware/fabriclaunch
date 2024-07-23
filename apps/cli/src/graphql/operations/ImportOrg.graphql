@@ -1,0 +1,8 @@
+mutation importOrg($input: OrgImportInput!) {
+	importOrg(input: $input) {
+		id
+		mspId
+		signCACert
+		tlsCACert
+	}
+}

@@ -1,0 +1,294 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "contact": {}
+    },
+    "paths": {
+        "/api/block/anchorpeers": {
+            "post": {
+                "description": "Set anchor peers to a config block",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "block"
+                ],
+                "summary": "Set anchor peers to a config block",
+                "parameters": [
+                    {
+                        "description": "Anchor Peers Info",
+                        "name": "update",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.SetAnchorPeersInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/main.SetAnchorPeersResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/block/decode": {
+            "post": {
+                "description": "Decode a block from base64 to JSON",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Decode a block",
+                "parameters": [
+                    {
+                        "description": "Block Data",
+                        "name": "block",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.DecodeBlockInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/main.DecodeBlockResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/channel/genesis": {
+            "post": {
+                "description": "Create a new channel with the given name and description",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Create a new channel genesis",
+                "parameters": [
+                    {
+                        "description": "Channel Genesis Info",
+                        "name": "channel",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.CreateChannelInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/main.ChannelGenesisResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/channel/update": {
+            "post": {
+                "description": "Create an update for an existing channel",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Create a channel update",
+                "parameters": [
+                    {
+                        "description": "Channel Update Info",
+                        "name": "update",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.ChannelUpdate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/main.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/main.Response"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "main.AddressWithCerts": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "$ref": "#/definitions/main.HostPort"
+                },
+                "clientTLSCert": {
+                    "type": "string"
+                },
+                "serverTLSCert": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.ChannelGenesisResponse": {
+            "type": "object",
+            "properties": {
+                "channel": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.ChannelUpdate": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.CreateChannelInput": {
+            "type": "object",
+            "properties": {
+                "consenters": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.AddressWithCerts"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "ordererOrgs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.Organization"
+                    }
+                },
+                "peerOrgs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.Organization"
+                    }
+                }
+            }
+        },
+        "main.DecodeBlockInput": {
+            "type": "object",
+            "properties": {
+                "dataB64": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.DecodeBlockResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "additionalProperties": {}
+                }
+            }
+        },
+        "main.HostPort": {
+            "type": "object",
+            "properties": {
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                }
+            }
+        },
+        "main.Organization": {
+            "type": "object",
+            "properties": {
+                "anchorPeers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.HostPort"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "ordererEndpoints": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "signCACert": {
+                    "type": "string"
+                },
+                "tlsCACert": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.Response": {
+            "type": "object",
+            "additionalProperties": {}
+        },
+        "main.SetAnchorPeersInput": {
+            "type": "object",
+            "properties": {
+                "anchorPeers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.HostPort"
+                    }
+                },
+                "blockB64": {
+                    "type": "string"
+                },
+                "channelName": {
+                    "type": "string"
+                },
+                "mspID": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.SetAnchorPeersResponse": {
+            "type": "object",
+            "properties": {
+                "blockB64": {
+                    "type": "string"
+                },
+                "noChanges": {
+                    "type": "boolean"
+                }
+            }
+        }
+    }
+}

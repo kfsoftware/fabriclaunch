@@ -1,0 +1,12 @@
+mutation ProposeChannelCreation($input: ProposeChannelInput!) {
+	proposeChannelCreation(input: $input) {
+		id
+		channelName
+		channelData {
+			peerOrgs
+			ordererOrgs
+			channelTx
+			channelConfig
+		}
+	}
+}

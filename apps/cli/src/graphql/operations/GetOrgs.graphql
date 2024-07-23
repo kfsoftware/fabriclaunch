@@ -1,0 +1,8 @@
+query orgs($tenantSlug: String!) {
+	orgs(tenantSlug: $tenantSlug) {
+		id
+		mspId
+		signCACert
+		tlsCACert
+	}
+}

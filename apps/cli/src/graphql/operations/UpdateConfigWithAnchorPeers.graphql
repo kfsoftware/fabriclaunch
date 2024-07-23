@@ -1,0 +1,6 @@
+mutation UpdateConfigWithAnchorPeers($input: SetAnchorPeersInput!) {
+	updateConfigWithAnchorPeers(input: $input) {
+		updateB64
+		noChanges
+	}
+}

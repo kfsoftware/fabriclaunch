@@ -1,0 +1,10 @@
+mutation createAudit($input: CreateAuditLogInput!) {
+	createAuditLog(input: $input) {
+		id
+		tenantId
+		userId
+		logType
+		details
+		createdAt
+	}
+}

@@ -1,0 +1,19 @@
+{
+  "name": "@repo/hlf-node",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./lib/index.ts",
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/elliptic": "^6.4.18",
+    "@types/yaml": "^1.9.7"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "elliptic": "^6.5.5",
+    "slugify": "^1.6.6",
+    "yaml": "^2.4.5"
+  }
+}

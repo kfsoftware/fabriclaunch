@@ -1,0 +1,11 @@
+mutation commitChaincodeProposal($input: CommitChaincodeProposalInput!) {
+	commitChaincodeProposal(input: $input) {
+		id
+		channelName
+		chaincodeName
+		version
+		endorsementPolicy
+		pdc
+		codeZipHash
+	}
+}

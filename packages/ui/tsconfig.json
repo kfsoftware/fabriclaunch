@@ -1,0 +1,15 @@
+{
+  "extends": "@repo/typescript-config/react-library.json",
+  "include": [
+    "."
+  ],
+  "compilerOptions": {
+    "module": "ES2022",
+    "moduleResolution": "Bundler"
+  },
+  "exclude": [
+    "dist",
+    "build",
+    "node_modules"
+  ]
+}

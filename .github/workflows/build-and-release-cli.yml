@@ -1,0 +1,104 @@
+name: Build and Release CLI
+
+on:
+    push:
+        tags:
+            - 'v*'
+
+jobs:
+    build:
+        name: Build and Release
+        runs-on: ${{ matrix.os }}
+        strategy:
+            matrix:
+                include:
+                    - os: ubuntu-latest
+                      target: bun-linux-x64
+                      binary_name: fabriclaunch-linux-x64
+                    - os: ubuntu-latest
+                      target: bun-linux-arm64
+                      binary_name: fabriclaunch-linux-arm64
+                    - os: macos-latest
+                      target: bun-darwin-x64
+                      binary_name: fabriclaunch-macos-x64
+                    - os: macos-latest
+                      target: bun-darwin-arm64
+                      binary_name: fabriclaunch-macos-arm64
+                    # - os: windows-latest
+                    #   target: bun-windows-x64
+                    #   binary_name: fabriclaunch-windows.exe
+
+        steps:
+            - uses: actions/checkout@v3
+
+            - name: Setup Bun
+              uses: oven-sh/setup-bun@v1
+              with:
+                  bun-version: latest
+
+            - name: Install dependencies
+              run: bun install
+
+            - name: Build CLI
+              env:
+                API_URL: "https://fabriclaunch.com/api"
+              run: |
+                  if [[ "${{ matrix.target }}" == *"arm64"* ]]; then 
+                    bun build apps/cli/src/index.ts --compile --target=${{ matrix.target }} --outfile=${{ matrix.binary_name }} --define process.env.API_URL="$API_URL"
+                  else
+                    bun build apps/cli/src/index.ts --compile --outfile=${{ matrix.binary_name }} --define process.env.API_URL="$API_URL"
+                  fi
+
+            - name: Upload artifact
+              uses: actions/upload-artifact@v3
+              with:
+                  name: ${{ matrix.binary_name }}
+                  path: ${{ matrix.binary_name }}
+
+    release:
+        name: Create Release
+        needs: build
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v3
+
+            - name: Download all artifacts
+              uses: actions/download-artifact@v3
+
+            - name: Display structure of downloaded files
+              run: tree
+            - name: Create Release
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  gh release create ${{ github.ref_name }} \
+                    --repo kfsoftware/fabriclaunch-releases \
+                    --target=main \
+                    --title "Release ${{ github.ref_name }}" \
+                    --notes="example notes" 
+
+            - name: Upload Release Assets
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  for file in fabriclaunch-*; do
+                    echo "Uploading $file"
+                    gh release upload ${{ github.ref_name }} "$file/$file" \
+                      --repo kfsoftware/fabriclaunch-releases \
+                      --clobber
+                  done
+
+            - name: Generate SHA256 checksums
+              run: |
+                  echo "Generating SHA256 checksums"
+                  sha256sum fabriclaunch-*/* > SHA256SUMS.txt
+
+            - name: Upload SHA256SUMS
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  echo "Uploading SHA256SUMS.txt"
+                  gh release upload ${{ github.ref_name }} SHA256SUMS.txt \
+                    --repo kfsoftware/fabriclaunch-release \
+                    --clobber

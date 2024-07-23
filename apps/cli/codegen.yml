@@ -1,0 +1,9 @@
+# schema: http://localhost:3000/api/graphql
+schema: https://fabriclaunch.com/api/graphql
+generates:
+  ./src/operations/index.ts:
+    documents:
+      - ./src/graphql/operations/**/*.graphql
+    plugins:
+      - typescript
+      - typescript-operations

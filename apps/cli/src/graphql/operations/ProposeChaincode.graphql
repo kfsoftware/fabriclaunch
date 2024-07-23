@@ -1,0 +1,11 @@
+mutation ProposeChaincodeCreation($input: ProposeChaincodeInput!) {
+	proposeChaincode(input: $input) {
+		id
+		channelName
+		chaincodeName
+		version
+		endorsementPolicy
+		pdc
+		codeZipHash
+	}
+}

@@ -1,0 +1,293 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1720449556935,
+      "tag": "0000_tense_black_cat",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1720450533369,
+      "tag": "0001_milky_silver_samurai",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1720460004112,
+      "tag": "0002_glossy_micromax",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1720460869229,
+      "tag": "0003_clean_peter_parker",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1720460894844,
+      "tag": "0004_needy_bromley",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1720474614234,
+      "tag": "0005_charming_thunderbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1720509807863,
+      "tag": "0006_goofy_gamma_corps",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1720510766068,
+      "tag": "0007_nasty_argent",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1720511073230,
+      "tag": "0008_dear_purple_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1720511271597,
+      "tag": "0009_brief_masque",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1720511280711,
+      "tag": "0010_unknown_silver_surfer",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1720513733438,
+      "tag": "0011_lame_screwball",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1720513788841,
+      "tag": "0012_robust_james_howlett",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1720519467613,
+      "tag": "0013_unusual_toad_men",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1720523380530,
+      "tag": "0014_colorful_otto_octavius",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1720523664497,
+      "tag": "0015_typical_barracuda",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1720540900068,
+      "tag": "0016_windy_lily_hollister",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1720555562483,
+      "tag": "0017_cheerful_mother_askani",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1720556193211,
+      "tag": "0018_peaceful_vance_astro",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1720559300199,
+      "tag": "0019_brief_shotgun",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1720682162854,
+      "tag": "0020_fearless_wildside",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1720704673269,
+      "tag": "0021_clammy_crystal",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1720791721337,
+      "tag": "0022_flat_xavin",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1720791799524,
+      "tag": "0023_premium_infant_terrible",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1720858159821,
+      "tag": "0024_premium_hellcat",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1720909399527,
+      "tag": "0025_solid_argent",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1720942738393,
+      "tag": "0026_oval_zarda",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1720943984876,
+      "tag": "0027_free_typhoid_mary",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1720961950645,
+      "tag": "0028_curious_toad",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1720976617134,
+      "tag": "0029_melodic_hex",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1720976701029,
+      "tag": "0030_kind_felicia_hardy",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1720977445482,
+      "tag": "0031_fresh_punisher",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1720979040574,
+      "tag": "0032_fine_nemesis",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1720979054447,
+      "tag": "0033_smart_ultimo",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1720979160393,
+      "tag": "0034_messy_winter_soldier",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1721043428887,
+      "tag": "0035_glorious_chronomancer",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1721114865209,
+      "tag": "0036_sloppy_jack_flag",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1721117371763,
+      "tag": "0037_lowly_groot",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1721120289419,
+      "tag": "0038_flaky_skin",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1721128407145,
+      "tag": "0039_eminent_skrulls",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1721133295057,
+      "tag": "0040_daily_plazm",
+      "breakpoints": true
+    }
+  ]
+}

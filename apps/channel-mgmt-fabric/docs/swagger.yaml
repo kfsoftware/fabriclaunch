@@ -1,0 +1,189 @@
+definitions:
+  main.AddressWithCerts:
+    properties:
+      address:
+        $ref: '#/definitions/main.HostPort'
+      clientTLSCert:
+        type: string
+      serverTLSCert:
+        type: string
+    type: object
+  main.ChannelGenesisResponse:
+    properties:
+      channel:
+        type: string
+      message:
+        type: string
+    type: object
+  main.ChannelUpdate:
+    properties:
+      content:
+        type: string
+      id:
+        type: string
+    type: object
+  main.CreateChannelInput:
+    properties:
+      consenters:
+        items:
+          $ref: '#/definitions/main.AddressWithCerts'
+        type: array
+      name:
+        type: string
+      ordererOrgs:
+        items:
+          $ref: '#/definitions/main.Organization'
+        type: array
+      peerOrgs:
+        items:
+          $ref: '#/definitions/main.Organization'
+        type: array
+    type: object
+  main.DecodeBlockInput:
+    properties:
+      dataB64:
+        type: string
+    type: object
+  main.DecodeBlockResponse:
+    properties:
+      data:
+        additionalProperties: {}
+        type: object
+    type: object
+  main.HostPort:
+    properties:
+      host:
+        type: string
+      port:
+        type: integer
+    type: object
+  main.Organization:
+    properties:
+      anchorPeers:
+        items:
+          $ref: '#/definitions/main.HostPort'
+        type: array
+      name:
+        type: string
+      ordererEndpoints:
+        items:
+          type: string
+        type: array
+      signCACert:
+        type: string
+      tlsCACert:
+        type: string
+    type: object
+  main.Response:
+    additionalProperties: {}
+    type: object
+  main.SetAnchorPeersInput:
+    properties:
+      anchorPeers:
+        items:
+          $ref: '#/definitions/main.HostPort'
+        type: array
+      blockB64:
+        type: string
+      channelName:
+        type: string
+      mspID:
+        type: string
+    type: object
+  main.SetAnchorPeersResponse:
+    properties:
+      blockB64:
+        type: string
+      noChanges:
+        type: boolean
+    type: object
+info:
+  contact: {}
+paths:
+  /api/block/anchorpeers:
+    post:
+      consumes:
+      - application/json
+      description: Set anchor peers to a config block
+      parameters:
+      - description: Anchor Peers Info
+        in: body
+        name: update
+        required: true
+        schema:
+          $ref: '#/definitions/main.SetAnchorPeersInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.SetAnchorPeersResponse'
+      summary: Set anchor peers to a config block
+      tags:
+      - block
+  /api/block/decode:
+    post:
+      consumes:
+      - application/json
+      description: Decode a block from base64 to JSON
+      parameters:
+      - description: Block Data
+        in: body
+        name: block
+        required: true
+        schema:
+          $ref: '#/definitions/main.DecodeBlockInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.DecodeBlockResponse'
+      summary: Decode a block
+  /api/channel/genesis:
+    post:
+      consumes:
+      - application/json
+      description: Create a new channel with the given name and description
+      parameters:
+      - description: Channel Genesis Info
+        in: body
+        name: channel
+        required: true
+        schema:
+          $ref: '#/definitions/main.CreateChannelInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/main.ChannelGenesisResponse'
+      summary: Create a new channel genesis
+  /api/channel/update:
+    post:
+      consumes:
+      - application/json
+      description: Create an update for an existing channel
+      parameters:
+      - description: Channel Update Info
+        in: body
+        name: update
+        required: true
+        schema:
+          $ref: '#/definitions/main.ChannelUpdate'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/main.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.Response'
+      summary: Create a channel update
+swagger: "2.0"

@@ -1,0 +1,8 @@
+mutation importPeer($input: PeerImportInput!) {
+	importPeer(input: $input) {
+		id
+		mspId
+		signCert
+		tlsCert
+	}
+}

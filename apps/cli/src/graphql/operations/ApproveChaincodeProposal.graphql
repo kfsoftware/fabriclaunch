@@ -1,0 +1,7 @@
+mutation ApproveChaincodeProposal($input: ApproveChaincodeProposalInput!) {
+	approveChaincodeProposal(input: $input) {
+		id
+		proposalId
+		approvedAt
+	}
+}

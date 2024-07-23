@@ -1,0 +1,12 @@
+query GetChannelProposal($tenantSlug: String!, $proposalSlug: String!) {
+	proposal: channelProposal(proposalSlug: $proposalSlug, tenantSlug: $tenantSlug) {
+		id
+		channelName
+		channelData {
+			peerOrgs
+			ordererOrgs
+			channelTx
+			channelConfig
+		}
+	}
+}
