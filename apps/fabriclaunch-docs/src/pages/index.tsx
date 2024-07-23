@@ -33,7 +33,7 @@ export default function Home(): JSX.Element {
   return (
     <Layout
       title={`FabricLaunch - ${siteConfig.title}`}
-      description="Description will go into a meta tag in <head />">
+      description="FabricLaunch is a simple and easy to use tool to deploy Hyperledger Fabric networks on baremetal machines and manage governance.">
       <HomepageHeader />
       <main>
         <HomepageFeatures />
