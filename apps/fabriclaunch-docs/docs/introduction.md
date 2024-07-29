@@ -2,7 +2,7 @@
 sidebar_position: 1
 ---
 
-# Introduction to FabricLaunch222
+# Introduction to FabricLaunch
 
 ## The Onboarding Challenge
 
