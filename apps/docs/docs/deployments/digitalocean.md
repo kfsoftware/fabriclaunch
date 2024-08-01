@@ -1,3 +1,16 @@
+---
+sidebar_position: 1
+---
+
+# Deployment on DigitalOcean
+
+## Terraform project
+
+### main.tf
+
+To provision virtual machines on DigitalOcean, you can use Terraform. Terraform is an open-source infrastructure as code software tool that provides a consistent CLI workflow to manage hundreds of cloud services. Terraform codifies cloud APIs into declarative configuration files.
+
+```hcl title="main.tf"
 terraform {
   required_providers {
     digitalocean = {
@@ -130,3 +143,60 @@ output "droplet_ips" {
     droplet.name => droplet.ipv4_address
   }
 }
+
+```
+### variables.tf
+
+Then, you need to declare the variables in a `variables.tf` file:
+
+```hcl title="variables.tf"
+variable "do_token" {
+  description = "DigitalOcean API Token"
+  type        = string
+  sensitive   = true
+}
+
+variable "regions" {
+  description = "List of regions for droplet deployment"
+  type        = list(string)
+  default     = ["nyc1", "fra1", "blr1"]
+}
+variable "vm_names" {
+  description = "List of VM names"
+  type        = list(string)
+}
+```
+
+To avoid hardcoding the DigitalOcean API token in the `terraform.tfvars` file, you can use the `TF_VAR_do_token` environment variable:
+
+```bash
+export TF_VAR_do_token="your_digitalocean_api_token"
+```
+
+Finally, you can create a `terraform.tfvars` file to specify the values for the variables:
+
+```hcl title="terraform.tfvars"
+regions = ["nyc1", "fra1", "blr1"]
+
+vm_names = ["org1", "org2", "org3"]
+```
+
+## Execute Terraform
+
+To execute the Terraform project, you can run the following commands:
+
+```bash
+terraform init
+terraform apply
+```
+
+Then, you can access the virtual machines using the private key file `id_rsa`:
+
+```bash
+ssh -i id_rsa root@<droplet_ip>
+```
+
+Each of the virtual machines will have the FabricLaunch CLI installed. You can use the FabricLaunch CLI to create nodes and networks on the virtual machines.
+
+
+You can see the [`Getting started`](../getting-started.md) guide to learn how to deploy the FabricLaunch CLI. The IPs is the only thing that changes, apart from not using the 'localho.st' domain, in this case, you need to use the ip as the domain.

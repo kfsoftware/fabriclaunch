@@ -130,7 +130,7 @@ const config: Config = {
       copyright: `Copyright © ${new Date().getFullYear()} FabricLaunch. Built with Docusaurus.`,
     },
     prism: {
-      additionalLanguages: ['bash'],
+      additionalLanguages: ['bash', 'hcl'],
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
     },

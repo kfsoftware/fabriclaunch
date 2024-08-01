@@ -30,13 +30,13 @@ jobs:
 
             - name: Build Docusaurus website
               run: |
-                  cd apps/fabriclaunch-docs
+                  cd apps/docs
                   bun run build
 
             - name: Deploy to GitHub Pages
               uses: peaceiris/actions-gh-pages@v3
               with:
                   github_token: ${{ secrets.GITHUB_TOKEN }}
-                  publish_dir: ./apps/fabriclaunch-docs/build
+                  publish_dir: ./apps/docs/build
                   user_name: 'github-actions[bot]'
                   user_email: 'github-actions[bot]@users.noreply.github.com'

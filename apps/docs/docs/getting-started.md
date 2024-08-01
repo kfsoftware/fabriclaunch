@@ -221,16 +221,14 @@ fabriclaunch channel propose multilocation \
 
 # at this point, a notification should be sent to the other organizations to accept the channel proposal
 
-export CHANNEL_PROPOSAL_ID="prop_multilocation_1721134780228"
+export CHANNEL_PROPOSAL_ID="<CHANNEL_PROPOSAL_ID_FROM_PREV_STEP>"
+
 fabriclaunch channel accept "${CHANNEL_PROPOSAL_ID}"  -o NYCMSP --tenant ${TENANT_NAME}
 
-export CHANNEL_PROPOSAL_ID="prop_multilocation_1721134780228"
 fabriclaunch channel accept "${CHANNEL_PROPOSAL_ID}"  -o FRAMSP --tenant ${TENANT_NAME}
 
-export CHANNEL_PROPOSAL_ID="prop_multilocation_1721134780228"
 fabriclaunch channel accept "${CHANNEL_PROPOSAL_ID}"  -o BLRMSP --tenant ${TENANT_NAME}
 
-export CHANNEL_PROPOSAL_ID="prop_multilocation_1721134780228"
 
 fabriclaunch consensus create  "${CHANNEL_PROPOSAL_ID}" -o NYCMSP --tenant ${TENANT_NAME}
 fabriclaunch consensus create  "${CHANNEL_PROPOSAL_ID}" -o FRAMSP --tenant ${TENANT_NAME}
@@ -254,7 +252,7 @@ fabriclaunch chaincode propose fabcar --mspId=NYCMSP --chaincodePath=$PWD/chainc
 	--pdc="$PWD/pdc.json"
 
 
-export CH_PROPOSAL_ID="prop_multilocation_fabcar_7_1720979349091"
+export CH_PROPOSAL_ID="<CH_PROPOSAL_ID_FROM_PREV_STEP>"
 
 fabriclaunch chaincode accept ${CH_PROPOSAL_ID} -o NYCMSP --chaincodeAddress="127.0.0.1:20000" --tenant ${TENANT_NAME}
 fabriclaunch chaincode accept ${CH_PROPOSAL_ID} -o FRAMSP --chaincodeAddress="127.0.0.1:20000" --tenant ${TENANT_NAME}
@@ -263,13 +261,10 @@ fabriclaunch chaincode accept ${CH_PROPOSAL_ID} -o BLRMSP --chaincodeAddress="12
 # this line commits the chaincode to the channel
 fabriclaunch chaincode commit ${CH_PROPOSAL_ID} -o NYCMSP --tenant ${TENANT_NAME}
 
-export CH_PROPOSAL_ID="prop_multilocation_fabcar_7_1720979349091"
 fabriclaunch chaincode run ${CH_PROPOSAL_ID} --tenant ${TENANT_NAME} --mode=systemd --download --org=NYCMSP --chaincodeAddress="127.0.0.1:20000"
 
-export CH_PROPOSAL_ID="prop_multilocation_fabcar_7_1720979349091"
 fabriclaunch chaincode run ${CH_PROPOSAL_ID} --tenant ${TENANT_NAME} --mode=systemd --download --org=FRAMSP --chaincodeAddress="127.0.0.1:20000"
 
-export CH_PROPOSAL_ID="prop_multilocation_fabcar_7_1720979349091"
 fabriclaunch chaincode run ${CH_PROPOSAL_ID} --tenant ${TENANT_NAME} --mode=systemd --download --org=BLRMSP --chaincodeAddress="127.0.0.1:20000"
 
 

@@ -83,6 +83,11 @@ COPY --from=build --chown=node:node /build/turbo.json ./turbo.json
 COPY --from=build --chown=node:node /build/package.json ./package.json
 
 # RUN chown -R node:node /app
+COPY ./apps/web/start-with-migrate.sh ./apps/web/
 
 WORKDIR /app/apps/web
-CMD [ "npm", "start" ]
+# Make the start script executable
+RUN chmod +x start-with-migrate.sh
+
+# Use the start script as the CMD
+CMD ["./start-with-migrate.sh"]

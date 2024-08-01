@@ -152,4 +152,4 @@ We focus on baremetal deployment because:
 
 ## Next Steps
 
-Documentation coming soon. You can find the markdowns on the [GitHub repository](https://github.com/kfsoftware/fabriclaunch/tree/main/apps/fabriclaunch-docs/docs).
+Documentation coming soon. You can find the markdowns on the [GitHub repository](https://github.com/kfsoftware/fabriclaunch/tree/main/apps/docs/docs).
