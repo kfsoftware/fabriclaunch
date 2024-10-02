@@ -105,14 +105,16 @@ export default function LoginPage2({ callbackUrl, providers }: { callbackUrl: st
 						</Button>
 					</div>
 				</form>
-				<div className="relative">
-					<div className="absolute inset-0 flex items-center">
-						<div className="w-full border-t border-muted" />
+				{providers.length > 0 && providers.some((i) => i.type === 'oauth') && (
+					<div className="relative">
+						<div className="absolute inset-0 flex items-center">
+							<div className="w-full border-t border-muted" />
+						</div>
+						<div className="relative flex justify-center text-sm">
+							<span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+						</div>
 					</div>
-					<div className="relative flex justify-center text-sm">
-						<span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-					</div>
-				</div>
+				)}
 				{providers
 					.filter((i) => i.type === 'oauth')
 					.map((provider) => (

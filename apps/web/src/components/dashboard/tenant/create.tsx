@@ -42,7 +42,16 @@ export default function TenantCreateButton() {
 				<DialogHeader>
 					<DialogTitle>Create consortium</DialogTitle>
 				</DialogHeader>
-				<AutoForm onSubmit={onSubmit} formSchema={addTenantSchema} fieldConfig={{}}>
+				<AutoForm onSubmit={onSubmit} formSchema={addTenantSchema} fieldConfig={{
+					name: {
+						label: 'Consortium Name',
+						description: 'Enter a name for your new consortium',
+						inputProps: {
+							placeholder: 'My Consortium',
+							autoComplete: 'off'
+						}
+					}
+				}}>
 					<AutoFormSubmit disabled={submitting}>Create</AutoFormSubmit>
 				</AutoForm>
 			</DialogContent>

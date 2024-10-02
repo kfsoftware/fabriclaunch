@@ -12,6 +12,7 @@ import {
 	OrdererJoinedDetails,
 	PeerCreatedDetails,
 	PeerJoinedDetails,
+	TenantCreatedDetails,
 } from '@/db'
 import { getAuditLogs } from '@/lib/logic'
 import { Input } from '@repo/ui/input'
@@ -103,6 +104,13 @@ const AuditLogsDetails: React.FC<{ log: AuditLogDB }> = ({ log }) => {
 						<p>Version: {chaincodeCommittedDetails.version}</p>
 					</>
 				)
+			case 'TENANT_CREATED':
+				const tenantCreatedDetails = log.details as TenantCreatedDetails
+				return (
+					<>
+						<p>Tenant Name: {tenantCreatedDetails.tenantName}</p>
+					</>
+				)
 
 			default:
 				return <p>Unknown log type</p>
@@ -120,7 +128,7 @@ export default function AuditLogsTable({ auditLogs }: { auditLogs: Awaited<Retur
 	const filteredLogs = auditLogs.filter((log) => {
 		return (
 			log.audit_log.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			log.organization.mspId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			log.organization?.mspId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
 			log.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 			log.audit_log.logType.toLowerCase().includes(searchQuery.toLowerCase())
 		)
@@ -166,25 +174,11 @@ export default function AuditLogsTable({ auditLogs }: { auditLogs: Awaited<Retur
 					<tbody>
 						{currentLogs.map((log) => (
 							<tr key={log.audit_log.id} className="border-b border-gray-200 hover:bg-gray-800">
-								<td className="px-4 py-3">{log.organization.mspId}</td>
+								<td className="px-4 py-3">{log?.organization?.mspId ?? ''}</td>
 								<td className="px-4 py-3">{log.user.name}</td>
 								<td className="px-4 py-3">{log.audit_log.logType}</td>
 								<td className="px-4 py-3">
 									<AuditLogsDetails log={log.audit_log} />
-									{/* {log.logType === 'CHANNEL_PROPOSED' && (
-										<div>
-											<p>Proposal ID: {log.details.proposalId}</p>
-											<p>Proposed By: {log.details.proposedBy}</p>
-											<p>Channel Name: {log.details.channelName}</p>
-										</div>
-									)}
-									{log.logType === 'CHANNEL_APPROVED' && (
-										<div>
-											<p>Proposal ID: {log.details.proposalId}</p>
-											<p>Approved By: {log.details.approvedBy}</p>
-											<p>Channel Name: {log.details.channelName}</p>
-										</div>
-									)} */}
 								</td>
 								<td className="px-4 py-3">
 									<HumanDate date={log.audit_log.createdAt} />

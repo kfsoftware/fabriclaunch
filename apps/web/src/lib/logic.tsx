@@ -15,6 +15,7 @@ import {
 	OrganizationInvitationDB,
 	PeerCreatedDetails,
 	PeerJoinedDetails,
+	TenantCreatedDetails,
 	TenantDB,
 	accountsTable,
 	chaincodeProposalApprovalTable,
@@ -80,7 +81,6 @@ export const getUserById = async (id: string) => {
 	return user
 }
 
-
 // Add these types
 export type AuditLogDetails = {
 	PEER_CREATED: PeerCreatedDetails
@@ -93,6 +93,7 @@ export type AuditLogDetails = {
 	CHAINCODE_PROPOSED: ChaincodeProposedDetails
 	CHAINCODE_APPROVED: ChaincodeApprovedDetails
 	CHAINCODE_COMMITTED: ChaincodeCommittedDetails
+	TENANT_CREATED: TenantCreatedDetails
 }
 
 export const getAuditLogs = async (tenantId: string) => {
@@ -101,13 +102,13 @@ export const getAuditLogs = async (tenantId: string) => {
 		.from(auditLogTable)
 		.where(eq(auditLogTable.tenantId, tenantId))
 		.innerJoin(usersTable, eq(auditLogTable.userId, usersTable.id))
-		.innerJoin(organizationsTable, eq(auditLogTable.orgId, organizationsTable.id))
+		.leftJoin(organizationsTable, eq(auditLogTable.orgId, organizationsTable.id))
 		.innerJoin(tenantsTable, eq(auditLogTable.tenantId, tenantsTable.id))
 		.orderBy(desc(auditLogTable.createdAt))
 	return logs
 }
 // Add this function
-export const createAuditLog = async <T extends keyof AuditLogDetails>(tenantId: string, userId: string, orgId: string, logType: T, details: AuditLogDetails[T]) => {
+export const createAuditLog = async <T extends keyof AuditLogDetails>(tenantId: string, userId: string, orgId: string | undefined, logType: T, details: AuditLogDetails[T]) => {
 	const [auditLogId] = await db
 		.insert(auditLogTable)
 		.values({
@@ -220,6 +221,11 @@ export const createTenant = async (name: string, userId: string) => {
 		userId,
 		tenantId: tenant.id,
 		role: 'ADMIN',
+	})
+	// create audit log
+	await createAuditLog(tenant.id, userId, undefined, 'TENANT_CREATED', {
+		tenantName: tenant.name,
+		tenantId: tenant.id,
 	})
 	return tenant
 }
@@ -673,7 +679,7 @@ export const getChaincodeProposalBySlug = async (tenantId: string, slug: string)
 		.from(chaincodeProposalTable)
 		.innerJoin(tenantsTable, eq(chaincodeProposalTable.tenantId, tenantsTable.id))
 		.innerJoin(organizationsTable, eq(chaincodeProposalTable.proposedByOrgId, organizationsTable.id))
-		
+
 		.where(and(eq(chaincodeProposalTable.tenantId, tenantId), eq(chaincodeProposalTable.slug, slug)))
 	if (proposals.length === 0) {
 		return null

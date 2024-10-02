@@ -1,0 +1,1 @@
+ALTER TYPE "audit_log_type" ADD VALUE 'TENANT_CREATED';

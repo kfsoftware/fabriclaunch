@@ -1,7 +1,7 @@
 export const DEFAULT_TENANT_NAME = 'default'
 
 export const EXTERNAL_PUBLIC_URL= process.env.NEXT_PUBLIC_EXTERNAL_URL as string
-
+console.log('EXTERNAL_PUBLIC_URL', EXTERNAL_PUBLIC_URL)
 export const SHIKI_LANGUAGES_TO_LOAD = [
 	'abap',
 	'actionscript-3',

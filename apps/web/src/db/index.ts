@@ -360,7 +360,8 @@ export const auditLogTypeEnum = pgEnum('audit_log_type', [
 	'PEER_JOINED',
 	'CHAINCODE_PROPOSED',
 	'CHAINCODE_APPROVED',
-	'CHAINCODE_COMMITTED'
+	'CHAINCODE_COMMITTED',
+	'TENANT_CREATED'
 ]);
 
 
@@ -434,6 +435,11 @@ export interface ChaincodeCommittedDetails {
 	codeZipHash: string
 }
 
+export interface TenantCreatedDetails {
+	tenantId: string;
+	tenantName: string;
+}
+
 // Union type for all possible detail types
 type AuditLogDetails =
 	| PeerCreatedDetails
@@ -445,13 +451,14 @@ type AuditLogDetails =
 	| PeerJoinedDetails
 	| ChaincodeProposedDetails
 	| ChaincodeApprovedDetails
-	| ChaincodeCommittedDetails;
+	| ChaincodeCommittedDetails
+	| TenantCreatedDetails;
 
 // Audit Log Table
 export const auditLogTable = pgTable('audit_log', {
 	id: uuid('id').primaryKey().defaultRandom(),
 	tenantId: uuid('tenant_id').references(() => tenantsTable.id).notNull(),
-	orgId: uuid('org_id').references(() => organizationsTable.id).notNull(),
+	orgId: uuid('org_id').references(() => organizationsTable.id),
 	userId: text('user_id').references(() => usersTable.id).notNull(),
 	logType: auditLogTypeEnum('log_type').notNull(),
 	details: customJsonb<AuditLogDetails>('details').notNull(),
@@ -471,5 +478,6 @@ export const auditLogTypeDescriptions: Record<typeof auditLogTypeEnum.enumValues
 	PEER_JOINED: "A peer joined a channel",
 	CHAINCODE_PROPOSED: "A new chaincode was proposed for deployment",
 	CHAINCODE_APPROVED: "A chaincode was approved by an organization",
-	CHAINCODE_COMMITTED: "A chaincode was committed to the channel"
+	CHAINCODE_COMMITTED: "A chaincode was committed to the channel",
+	TENANT_CREATED: "A new consortium was created"
 };
