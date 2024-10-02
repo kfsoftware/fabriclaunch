@@ -17,7 +17,7 @@ export interface StartPeerOpts {
 	domainNames?: string[];
 }
 export interface PeerConfig {
-	mode: 'cmd' | 'systemd' | 'docker';
+	mode: 'cmd' | 'service' | 'docker';
 	listenAddress: string;
 	chaincodeAddress: string;
 	eventsAddress: string;

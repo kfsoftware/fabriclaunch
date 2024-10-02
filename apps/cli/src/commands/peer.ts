@@ -1,16 +1,16 @@
-import { LocalOrg, LocalPeer } from "@repo/hlf-node";
-import chalk from "chalk";
-import ora from "ora";
-import slugify from "slugify";
-import { Arg, Command, CommandClass, Flag } from "../cli-decorators";
-import { execute } from "../graphql/client/execute";
-import { ImportPeerDocument } from "../graphql/client/graphql";
-import { registry } from "../registry/registry";
-import { storage } from "../storage";
-import { DEFAULT_TENANT_NAME } from "../constants";
+import { LocalOrg, LocalPeer } from '@repo/hlf-node'
+import chalk from 'chalk'
+import ora from 'ora'
+import slugify from 'slugify'
+import { Arg, Command, CommandClass, Flag } from '../cli-decorators'
+import { execute } from '../graphql/client/execute'
+import { ImportPeerDocument } from '../graphql/client/graphql'
+import { registry } from '../registry/registry'
+import { storage } from '../storage'
+import { DEFAULT_TENANT_NAME } from '../constants'
 
 @CommandClass({
-	name: 'peer'
+	name: 'peer',
 })
 export class PeerCommands {
 	@Command({
@@ -30,7 +30,7 @@ export class PeerCommands {
 			stoppingPeerSpinner.fail(`No peers found for MSP ${flags.mspId}`)
 			return
 		}
-		const peerConfig = peers.find(peer => peer.peerName === peerId)
+		const peerConfig = peers.find((peer) => peer.peerName === peerId)
 		if (!peerConfig) {
 			stoppingPeerSpinner.fail(`Peer ${peerId} not found`)
 			return
@@ -44,7 +44,7 @@ export class PeerCommands {
 				chaincodeAddress: peerConfig.chaincodeAddress,
 				eventsAddress: peerConfig.eventsAddress,
 				operationsListenAddress: peerConfig.operationsListenAddress,
-				domainNames: []
+				domainNames: [],
 			},
 			new LocalOrg(flags.mspId),
 			peerConfig.mode
@@ -78,7 +78,7 @@ export class PeerCommands {
 			mspId: string
 			externalEndpoint: string
 			listenAddress: string
-			mode: "cmd" | "systemd" | "docker"
+			mode: 'cmd' | 'service' | 'docker'
 			chaincodeAddress: string
 			region: string
 			eventsAddress: string
@@ -88,11 +88,11 @@ export class PeerCommands {
 	): Promise<void> {
 		const peerId = slugify(peerName)
 		const initSpinner = ora(`Initializing peer ${peerId}`).start()
-		if (!await storage.checkIfLoggedIn()) {
+		if (!(await storage.checkIfLoggedIn())) {
 			initSpinner.fail('Please login first')
 			return
 		}
-		if (flags.mode !== "cmd" && flags.mode !== "systemd" && flags.mode !== "docker") {
+		if (flags.mode !== 'cmd' && flags.mode !== 'service' && flags.mode !== 'docker') {
 			initSpinner.fail(chalk.red(`Invalid mode ${flags.mode}`))
 			return
 		}
@@ -133,8 +133,8 @@ export class PeerCommands {
 				tenantSlug,
 				tlsCert: peerConfig.tlsCert,
 				url: flags.externalEndpoint,
-				region: flags.region
-			}
+				region: flags.region,
+			},
 		})
 		if (res.errors && res.errors.length > 0) {
 			registerSpinner.fail(res.errors[0].message)
@@ -144,24 +144,24 @@ export class PeerCommands {
 		}
 		await registry.storePeerConfig(flags.mspId, peerConfig)
 		const startingPeerSpinner = ora(`Starting peer ${peerId}`).start()
-		if (flags.mode === "cmd" && await registry.isNodeLocked(flags.mspId, peerConfig.peerName, "peer")) {
+		if (flags.mode === 'cmd' && (await registry.isNodeLocked(flags.mspId, peerConfig.peerName, 'peer'))) {
 			startingPeerSpinner.fail(`Peer ${peerId} is already running`)
 			return
 		}
 		const response = await peer.start()
 		switch (response.mode) {
-			case "cmd":
-				await registry.lockNode(flags.mspId, peerConfig.peerName, "peer", response.subprocess.pid)
+			case 'cmd':
+				await registry.lockNode(flags.mspId, peerConfig.peerName, 'peer', response.subprocess.pid)
 				startingPeerSpinner.succeed(`Started peer ${peerId}`)
-				break;
-			case "systemd":
-				startingPeerSpinner.succeed(`Started peer using systemd service name ${response.serviceName}`)
 				break
-			case "docker":
+			case 'service':
+				startingPeerSpinner.succeed(`Started peer using service name ${response.serviceName}`)
+				break
+			case 'docker':
 				startingPeerSpinner.succeed(`Started peer using docker container id ${response.containerName}`)
 				break
 			default:
-				break;
+				break
 		}
 	}
 
@@ -174,7 +174,7 @@ export class PeerCommands {
 		peerName: string,
 		@Flag({ name: 'mspId', alias: 'm', description: 'MSP to register the peer for', type: 'string', required: true })
 		@Flag({ name: 'region', alias: 'r', description: 'Region for the peer', type: 'string', required: true })
-		flags: { mspId: string, region: string }
+		flags: { mspId: string; region: string }
 	): Promise<void> {
 		const peerId = slugify(peerName)
 		const registerSpinner = ora(`Registering peer ${peerId}`).start()
@@ -183,7 +183,7 @@ export class PeerCommands {
 			registerSpinner.fail(`No peers found for MSP ${flags.mspId}`)
 			return
 		}
-		const peerConfig = peers.find(peer => peer.peerName === peerId)
+		const peerConfig = peers.find((peer) => peer.peerName === peerId)
 		if (!peerConfig) {
 			registerSpinner.fail(`Peer ${peerId} not found`)
 			return
@@ -197,7 +197,7 @@ export class PeerCommands {
 				tlsCert: peerConfig.tlsCert,
 				url: peerConfig.externalEndpoint,
 				region: flags.region,
-			}
+			},
 		})
 		if (res.errors && res.errors.length > 0) {
 			registerSpinner.fail(res.errors[0].message)
@@ -207,4 +207,3 @@ export class PeerCommands {
 		}
 	}
 }
-
