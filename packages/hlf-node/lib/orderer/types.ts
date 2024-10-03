@@ -15,7 +15,7 @@ export interface IOrderer {
 	start(): Promise<Subprocess>;
 }
 export interface OrdererConfig {
-	mode: 'cmd' | 'systemd' | 'docker';
+	mode: 'cmd' | 'service' | 'docker';
 	listenAddress: string;
 	adminAddress: string;
 	operationsListenAddress: string;

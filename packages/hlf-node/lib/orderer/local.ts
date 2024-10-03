@@ -1,14 +1,13 @@
-
-import { Subprocess } from 'bun';
-import chalk from 'chalk';
-import { ExecException } from 'child_process';
-import fs from "fs/promises";
-import { isIP } from 'net';
-import os from "os";
-import path from 'path';
-import slugify from 'slugify';
-import { IOrg } from '../org';
-import { OrdererConfig, OrdererType, StartOrdererOpts } from "./types";
+import { Subprocess } from 'bun'
+import chalk from 'chalk'
+import { ExecException } from 'child_process'
+import fs from 'fs/promises'
+import { isIP } from 'net'
+import os from 'os'
+import path from 'path'
+import slugify from 'slugify'
+import { IOrg } from '../org'
+import { OrdererConfig, OrdererType, StartOrdererOpts } from './types'
 
 const configYamlContent = `NodeOUs:
   Enable: true
@@ -27,82 +26,90 @@ const configYamlContent = `NodeOUs:
 `
 
 type StartCmdResponse = {
-    mode: "cmd";
-    subprocess: Subprocess;
+	mode: 'cmd'
+	subprocess: Subprocess
 }
-type StartSystemdResponse = {
-    mode: "systemd";
-    serviceName: string;
+type StartServiceResponse = {
+	mode: 'service'
+	type: 'systemd' | 'launchd'
+	serviceName: string
 }
 type StartDockerResponse = {
-    mode: "docker";
-    containerName: string;
+	mode: 'docker'
+	containerName: string
 }
 
-
 export class LocalOrderer {
-    type: OrdererType = 'local'
-    constructor(
-        public mspId: string,
-        private opts: StartOrdererOpts,
-        private readonly org: IOrg,
-        private readonly mode: "cmd" | "systemd" | "docker"
-    ) { }
-    async init(): Promise<OrdererConfig> {
-        const ordererId = `${this.opts.id}.${this.org.mspId}`;
-        const chunks = this.opts.externalEndpoint.split(':');
-        const dnsName = chunks[0];
-        const ipAddresses = [...this.opts.domainNames.filter(s => isIP(s)), "127.0.0.1"]
-        const dnsNames = [...this.opts.domainNames.filter(s => !isIP(s)), dnsName]
-        const tlsCerts = await this.org.getCertificateForNode(ordererId, {
-            dnsNames,
-            ipAddresses,
-            organization: this.org.mspId,
-            organizationUnit: 'orderer'
-        }, 'tls');
-        const signCerts = await this.org.getCertificateForNode(ordererId, {
-            dnsNames: [],
-            ipAddresses: [],
-            organization: this.org.mspId,
-            organizationUnit: 'orderer'
-        }, 'sign');
-        const slugifiedId = slugify(this.opts.id);
-        const homeDir = os.homedir();
+	type: OrdererType = 'local'
+	constructor(
+		public mspId: string,
+		private opts: StartOrdererOpts,
+		private readonly org: IOrg,
+		private readonly mode: 'cmd' | 'service' | 'docker'
+	) {}
+	async init(): Promise<OrdererConfig> {
+		const ordererId = `${this.opts.id}.${this.org.mspId}`
+		const chunks = this.opts.externalEndpoint.split(':')
+		const dnsName = chunks[0]
+		const ipAddresses = [...this.opts.domainNames.filter((s) => isIP(s)), '127.0.0.1']
+		const dnsNames = [...this.opts.domainNames.filter((s) => !isIP(s)), dnsName]
+		const tlsCerts = await this.org.getCertificateForNode(
+			ordererId,
+			{
+				dnsNames,
+				ipAddresses,
+				organization: this.org.mspId,
+				organizationUnit: 'orderer',
+			},
+			'tls'
+		)
+		const signCerts = await this.org.getCertificateForNode(
+			ordererId,
+			{
+				dnsNames: [],
+				ipAddresses: [],
+				organization: this.org.mspId,
+				organizationUnit: 'orderer',
+			},
+			'sign'
+		)
+		const slugifiedId = slugify(this.opts.id)
+		const homeDir = os.homedir()
 
-        // specific path for ordererId
-        const dirPath = path.join(homeDir, `.fabriclaunch/orderers/${slugifiedId}`);
-        const dataConfigPath = path.join(dirPath, 'data');
-        const mspConfigPath = path.join(dirPath, 'config');
+		// specific path for ordererId
+		const dirPath = path.join(homeDir, `.fabriclaunch/orderers/${slugifiedId}`)
+		const dataConfigPath = path.join(dirPath, 'data')
+		const mspConfigPath = path.join(dirPath, 'config')
 
-        // ensure certificates are written to configOrdererPath into respective paths
-        // create folders
-        await fs.mkdir(dataConfigPath, { recursive: true });
-        await fs.mkdir(mspConfigPath, { recursive: true });
+		// ensure certificates are written to configOrdererPath into respective paths
+		// create folders
+		await fs.mkdir(dataConfigPath, { recursive: true })
+		await fs.mkdir(mspConfigPath, { recursive: true })
 
-        // write certificates only to configOrdererPath, check buildOrdererEnvironment for paths
-        await fs.writeFile(`${mspConfigPath}/tls.crt`, tlsCerts.cert);
-        await fs.writeFile(`${mspConfigPath}/tls.key`, tlsCerts.pk);
-        // write signcerts/cert.pem but ensure the path is created
-        await fs.mkdir(`${mspConfigPath}/signcerts`, { recursive: true });
-        await fs.writeFile(`${mspConfigPath}/signcerts/cert.pem`, signCerts.cert);
-        await fs.writeFile(`${mspConfigPath}/cacert.pem`, signCerts.caCert);
+		// write certificates only to configOrdererPath, check buildOrdererEnvironment for paths
+		await fs.writeFile(`${mspConfigPath}/tls.crt`, tlsCerts.cert)
+		await fs.writeFile(`${mspConfigPath}/tls.key`, tlsCerts.pk)
+		// write signcerts/cert.pem but ensure the path is created
+		await fs.mkdir(`${mspConfigPath}/signcerts`, { recursive: true })
+		await fs.writeFile(`${mspConfigPath}/signcerts/cert.pem`, signCerts.cert)
+		await fs.writeFile(`${mspConfigPath}/cacert.pem`, signCerts.caCert)
 
-        // write cacerts/cacert.pem but ensure the path is created
-        await fs.mkdir(`${mspConfigPath}/cacerts`, { recursive: true });
-        await fs.writeFile(`${mspConfigPath}/cacerts/cacert.pem`, signCerts.caCert);
+		// write cacerts/cacert.pem but ensure the path is created
+		await fs.mkdir(`${mspConfigPath}/cacerts`, { recursive: true })
+		await fs.writeFile(`${mspConfigPath}/cacerts/cacert.pem`, signCerts.caCert)
 
-        // write tlscacerts/cacert.pem but ensure the path is created
-        await fs.mkdir(`${mspConfigPath}/tlscacerts`, { recursive: true });
-        await fs.writeFile(`${mspConfigPath}/tlscacerts/cacert.pem`, tlsCerts.caCert);
+		// write tlscacerts/cacert.pem but ensure the path is created
+		await fs.mkdir(`${mspConfigPath}/tlscacerts`, { recursive: true })
+		await fs.writeFile(`${mspConfigPath}/tlscacerts/cacert.pem`, tlsCerts.caCert)
 
-        // write keystore/key.pem for sign private key but ensure the path is created
-        await fs.mkdir(`${mspConfigPath}/keystore`, { recursive: true });
-        await fs.writeFile(`${mspConfigPath}/keystore/key.pem`, signCerts.pk);
+		// write keystore/key.pem for sign private key but ensure the path is created
+		await fs.mkdir(`${mspConfigPath}/keystore`, { recursive: true })
+		await fs.writeFile(`${mspConfigPath}/keystore/key.pem`, signCerts.pk)
 
-        // write msp config
-        await fs.writeFile(`${mspConfigPath}/config.yaml`, configYamlContent);
+		// write msp config
+		await fs.writeFile(`${mspConfigPath}/config.yaml`, configYamlContent)
 
-        const ordererYamlTemplate = `
+		const ordererYamlTemplate = `
 # Copyright IBM Corp. All Rights Reserved.
 #
 # SPDX-License-Identifier: Apache-2.0
@@ -533,139 +540,160 @@ Consensus:
 
 
 `
-        await fs.writeFile(`${mspConfigPath}/orderer.yaml`, ordererYamlTemplate)
-        const ordererConfig: OrdererConfig = {
-            mode: this.mode,
-            adminAddress: this.opts.adminAddress,
-            listenAddress: this.opts.listenAddress,
-            operationsListenAddress: this.opts.operationsListenAddress,
-            externalEndpoint: this.opts.externalEndpoint,
-            ordererName: this.opts.id,
-            signCert: signCerts.cert,
-            signCACert: signCerts.caCert,
-            signKey: signCerts.pk,
-            tlsCert: tlsCerts.cert,
-            tlsCACert: tlsCerts.caCert,
-            tlsKey: tlsCerts.pk,
-        }
-        const configPath = path.join(homeDir, `.fabriclaunch/nodes/${this.mspId}/${ordererId}/config.json`);
-        await fs.writeFile(configPath, JSON.stringify(ordererConfig));
-        return ordererConfig
-    }
+		await fs.writeFile(`${mspConfigPath}/orderer.yaml`, ordererYamlTemplate)
+		const ordererConfig: OrdererConfig = {
+			mode: this.mode,
+			adminAddress: this.opts.adminAddress,
+			listenAddress: this.opts.listenAddress,
+			operationsListenAddress: this.opts.operationsListenAddress,
+			externalEndpoint: this.opts.externalEndpoint,
+			ordererName: this.opts.id,
+			signCert: signCerts.cert,
+			signCACert: signCerts.caCert,
+			signKey: signCerts.pk,
+			tlsCert: tlsCerts.cert,
+			tlsCACert: tlsCerts.caCert,
+			tlsKey: tlsCerts.pk,
+		}
+		const configPath = path.join(homeDir, `.fabriclaunch/nodes/${this.mspId}/${ordererId}/config.json`)
+		await fs.writeFile(configPath, JSON.stringify(ordererConfig))
+		return ordererConfig
+	}
 
+	async stop(): Promise<void> {
+		switch (this.mode) {
+			case 'cmd': {
+				throw new Error("Can't stop orderer process using cmd mode")
+			}
+			case 'service': {
+				const platform = os.platform()
+				if (platform === 'linux') {
+					await this.stopSystemdService()
+				} else if (platform === 'darwin') {
+					await this.stopLaunchdService()
+				} else {
+					throw new Error(`Unsupported platform for service mode: ${platform}`)
+				}
+				break
+			}
+			case 'docker': {
+				throw new Error('Not implemented')
+			}
+		}
+	}
 
-    async stop(): Promise<void> {
-        switch (this.mode) {
-            case "cmd": {
-                throw new Error("Can't stop peer process using cmd mode");
-            }
-            case "systemd": {
-                await this.stopService();
-                await this.removeService();
-                break
-            }
-        }
-    }
-    private execSystemctl(command: string, service?: string) {
-        const r = Bun.spawnSync({
-            cmd: service ? ['sudo', 'systemctl', command, service] : ['sudo', 'systemctl', command],
-        })
-        return r
-    }
+	async start(): Promise<StartCmdResponse | StartServiceResponse | StartDockerResponse> {
+		const slugifiedId = slugify(this.opts.id)
+		const homeDir = os.homedir()
+		const dirPath = path.join(homeDir, `.fabriclaunch/orderers/${slugifiedId}`)
+		const mspConfigPath = path.join(dirPath, 'config')
+		const cmd = await this.findOrdererBinary()
+		if (!cmd) {
+			throw new Error('Orderer binary not found')
+		}
+		const env = this.buildOrdererEnvironment(mspConfigPath)
 
-    private async stopService(): Promise<void> {
-        try {
-            await this.execSystemctl('stop', this.serviceName);
-            console.log(`Stopped ${this.serviceName}`);
-        } catch (error) {
-            console.error(`Failed to stop ${this.serviceName}:`, error);
-            throw error;
-        }
-    }
+		switch (this.mode) {
+			case 'cmd':
+				return this.startCmd(cmd, env)
+			case 'service':
+				return this.startService(cmd, env, dirPath)
+			case 'docker':
+				return this.startDocker(env, mspConfigPath)
+			default:
+				throw new Error(`Invalid mode: ${this.mode}`)
+		}
+	}
 
-    private async removeService(): Promise<void> {
-        try {
-            await this.stopService();
-            await this.execSystemctl('disable', this.serviceName);
-            await fs.unlink(this.serviceFilePath);
-            console.log(`Removed ${this.serviceName}`);
-        } catch (error) {
-            console.error(`Failed to remove ${this.serviceName}:`, error);
-            throw error;
-        }
-    }
-    async start(): Promise<StartCmdResponse | StartSystemdResponse | StartDockerResponse> {
-        const slugifiedId = slugify(this.opts.id);
-        const homeDir = os.homedir();
-        const dirPath = path.join(homeDir, `.fabriclaunch/orderers/${slugifiedId}`);
-        const mspConfigPath = path.join(dirPath, 'config');
-        const cmd = this.buildOrdererCommand();
-        const env = this.buildOrdererEnvironment(mspConfigPath);
+	private startCmd(cmd: string, env: NodeJS.ProcessEnv): StartCmdResponse {
+		try {
+			const proc = Bun.spawn(cmd.split(' '), {
+				stdio: ['pipe', 'pipe', 'pipe'],
+				env,
+				onExit: (code) => {
+					console.log(chalk.blueBright(`Orderer process exited with code ${code}`))
+				},
+			})
+			;(() => {
+				new Response(proc.stdout).body.pipeTo(
+					new WritableStream({
+						write(chunk) {
+							console.log(chalk.blueBright(Buffer.from(chunk).toString('utf-8')))
+						},
+					})
+				)
+				new Response(proc.stderr).body.pipeTo(
+					new WritableStream({
+						write(chunk) {
+							console.log(chalk.blueBright(Buffer.from(chunk).toString('utf-8')))
+						},
+					})
+				)
+			})()
 
-        switch (this.mode) {
-            case "cmd": {
-                try {
-                    const proc = Bun.spawn(cmd.split(" "), {
-                        stdio: ["pipe", "pipe", "pipe"],
-                        env,
-                        onExit: (code) => {
-                            console.log(chalk.blueBright(`Orderer process exited with code ${code}`));
-                        }
-                    });
-                    (() => {
-                        new Response(proc.stdout).body.pipeTo(new WritableStream({
-                            write(chunk) {
-                                console.log(chalk.blueBright(Buffer.from(chunk).toString("utf-8")));
-                            }
-                        }));
-                        new Response(proc.stderr).body.pipeTo(new WritableStream({
-                            write(chunk) {
-                                console.log(chalk.blueBright(Buffer.from(chunk).toString("utf-8")));
-                            }
-                        }));
-                    })()
+			return {
+				mode: 'cmd',
+				subprocess: proc,
+			}
+		} catch (error) {
+			console.error('Failed to start orderer node:', (error as ExecException).message)
+			throw error
+		}
+	}
+	private async findOrdererBinary(): Promise<string> {
+		const platform = os.platform()
+		let findOrdererBinaryCommand: string[]
 
-                    return {
-                        mode: "cmd",
-                        subprocess: proc
-                    }
-                } catch (error) {
-                    console.error('Failed to start orderer node:', (error as ExecException).message);
-                    throw error;
-                }
-            }
-            case "systemd": {
-                try {
-                    await this.createSystemdService();
-                    await this.startService();
+		if (platform === 'win32') {
+			findOrdererBinaryCommand = ['where', 'orderer']
+		} else {
+			findOrdererBinaryCommand = ['which', 'orderer']
+		}
 
-                    return {
-                        mode: "systemd",
-                        serviceName: this.serviceName,
-                    }
-                } catch (error) {
-                    console.error(`Failed to start ${this.serviceName}:`, error);
-                    throw error;
-                }
-            }
-            default:
-                throw new Error(`Invalid mode: ${this.mode}`);
-        }
-    }
+		const result = Bun.spawnSync(findOrdererBinaryCommand)
 
+		if (result.exitCode !== 0) {
+			throw new Error('Failed to find orderer binary')
+		}
 
-    private async createSystemdService(): Promise<void> {
-        const homeDir = os.homedir();
-        const dirPath = path.join(homeDir, `.fabriclaunch/orderers/${slugify(this.opts.id)}`);
-        const mspConfigPath = path.join(dirPath, 'config');
-        const cmd = this.buildOrdererCommand();
-        const env = this.buildOrdererEnvironment(mspConfigPath);
+		const ordererBinaryPath = result.stdout.toString().trim()
 
-        const envString = Object.entries(env)
-            .map(([key, value]) => `Environment="${key}=${value}"`)
-            .join('\n');
+		if (!ordererBinaryPath) {
+			throw new Error('Orderer binary not found in PATH')
+		}
 
-        const serviceContent = `
+		return ordererBinaryPath
+	}
+	private async startService(cmd: string, env: NodeJS.ProcessEnv, dirPath: string): Promise<StartServiceResponse> {
+		const platform = os.platform()
+		try {
+			if (platform === 'linux') {
+				await this.createSystemdService(cmd, env, dirPath)
+				await this.startSystemdService()
+				return { mode: 'service', type: 'systemd', serviceName: this.serviceName }
+			} else if (platform === 'darwin') {
+				await this.createLaunchdService(cmd, env, dirPath)
+				await this.startLaunchdService()
+				return { mode: 'service', type: 'launchd', serviceName: this.serviceName }
+			} else {
+				throw new Error(`Unsupported platform for service mode: ${platform}`)
+			}
+		} catch (error) {
+			console.error(`Failed to start ${this.serviceName}:`, error)
+			throw error
+		}
+	}
+
+	private startDocker(env: NodeJS.ProcessEnv, mspConfigPath: string): StartDockerResponse {
+		throw new Error('Not implemented')
+	}
+
+	private async createSystemdService(cmd: string, env: NodeJS.ProcessEnv, dirPath: string): Promise<void> {
+		const envString = Object.entries(env)
+			.map(([key, value]) => `Environment="${key}=${value}"`)
+			.join('\n')
+
+		const serviceContent = `
 [Unit]
 Description=Hyperledger Fabric Orderer - ${this.opts.id}
 After=network.target
@@ -681,75 +709,181 @@ ${envString}
 
 [Install]
 WantedBy=multi-user.target
-`;
+`
 
-        try {
-            await fs.writeFile(this.serviceFilePath, serviceContent, { mode: 0o644 });
-        } catch (error) {
-            console.error('Failed to create systemd service file:', error);
-            throw error;
-        }
-    }
+		try {
+			await fs.writeFile(this.serviceFilePath, serviceContent, { mode: 0o644 })
+		} catch (error) {
+			console.error('Failed to create systemd service file:', error)
+			throw error
+		}
+	}
 
-    private async startService(): Promise<void> {
-        try {
-            await this.execSystemctl('daemon-reload');
-            await this.execSystemctl('enable', this.serviceName);
-            await this.execSystemctl('start', this.serviceName);
-            await this.execSystemctl('restart', this.serviceName);
-            
-        } catch (error) {
-            throw error;
-        }
-    }
+	private async createLaunchdService(cmd: string, env: NodeJS.ProcessEnv, dirPath: string): Promise<void> {
+		const envString = Object.entries(env)
+			.map(
+				([key, value]) => `<key>${key}</key>
+    <string>${value}</string>`
+			)
+			.join('\n')
 
-    private get serviceName(): string {
-        return `fabric-orderer-${slugify(this.opts.id)}.service`;
-    }
+		const serviceContent = `
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>${this.launchdServiceName}</string>
+  <key>ProgramArguments</key>
+  <array>
+      <string>/bin/bash</string>
+      <string>-c</string>
+      <string>${cmd}</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>${dirPath}/${this.serviceName}.log</string>
+  <key>StandardErrorPath</key>
+  <string>${dirPath}/${this.serviceName}.err</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    ${envString}
+  </dict>
+</dict>
+</plist>
+`
 
-    private get serviceFilePath(): string {
-        return `/etc/systemd/system/${this.serviceName}`;
-    }
-    private buildOrdererCommand(): string {
-        return 'orderer';
-    }
+		try {
+			await fs.writeFile(this.launchdPlistPath, serviceContent, { mode: 0o644 })
+		} catch (error) {
+			console.error('Failed to create launchd service file:', error)
+			throw error
+		}
+	}
 
-    private buildOrdererEnvironment(mspConfigPath: string): NodeJS.ProcessEnv {
-        const [host, port] = this.opts.listenAddress.split(':');
-        return {
-            FABRIC_CFG_PATH: mspConfigPath,
-            ORDERER_ADMIN_TLS_CLIENTROOTCAS: `${mspConfigPath}/tlscacerts/cacert.pem`,
-            ORDERER_ADMIN_TLS_PRIVATEKEY: `${mspConfigPath}/tls.key`,
-            ORDERER_ADMIN_TLS_CERTIFICATE: `${mspConfigPath}/tls.crt`,
-            ORDERER_ADMIN_TLS_ROOTCAS: `${mspConfigPath}/tlscacerts/cacert.pem`,
-            ORDERER_FILELEDGER_LOCATION: `${mspConfigPath}/data`,
-            ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE: `${mspConfigPath}/tls.crt`,
-            ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY: `${mspConfigPath}/tls.key`,
-            ORDERER_GENERAL_CLUSTER_ROOTCAS: `${mspConfigPath}/tlscacerts/cacert.pem`,
-            ORDERER_GENERAL_LOCALMSPDIR: mspConfigPath,
-            ORDERER_GENERAL_TLS_CLIENTROOTCAS: `${mspConfigPath}/tlscacerts/cacert.pem`,
-            ORDERER_GENERAL_TLS_CERTIFICATE: `${mspConfigPath}/tls.crt`,
-            ORDERER_GENERAL_TLS_PRIVATEKEY: `${mspConfigPath}/tls.key`,
-            ORDERER_GENERAL_TLS_ROOTCAS: `${mspConfigPath}/tlscacerts/cacert.pem`,
-            ORDERER_ADMIN_LISTENADDRESS: this.opts.adminAddress,
-            ORDERER_GENERAL_LISTENADDRESS: host,
-            ORDERER_OPERATIONS_LISTENADDRESS: this.opts.operationsListenAddress,
-            ORDERER_GENERAL_LOCALMSPID: this.mspId,
-            ORDERER_GENERAL_LISTENPORT: port,
-            ORDERER_ADMIN_TLS_ENABLED: 'true',
-            ORDERER_CHANNELPARTICIPATION_ENABLED: 'true',
-            ORDERER_GENERAL_BATCHSIZE_MAXMESSAGECOUNT: '10',
-            ORDERER_GENERAL_BATCHTIMEOUT: '1s',
-            ORDERER_GENERAL_BOOTSTRAPMETHOD: 'none',
-            ORDERER_GENERAL_GENESISPROFILE: 'initial',
-            ORDERER_GENERAL_LEDGERTYPE: 'file',
-            FABRIC_LOGGING_SPEC: 'info',
-            ORDERER_GENERAL_MAXWINDOWSIZE: '1000',
-            ORDERER_GENERAL_ORDERERTYPE: 'etcdraft',
-            ORDERER_GENERAL_TLS_CLIENTAUTHREQUIRED: 'false',
-            ORDERER_GENERAL_TLS_ENABLED: 'true',
-            ORDERER_METRICS_PROVIDER: 'prometheus',
-            ORDERER_OPERATIONS_TLS_ENABLED: 'false',
-        };
-    }
+	private async startSystemdService(): Promise<void> {
+		try {
+			await this.execSystemctl('daemon-reload')
+			await this.execSystemctl('enable', this.serviceName)
+			await this.execSystemctl('start', this.serviceName)
+			await this.execSystemctl('restart', this.serviceName)
+		} catch (error) {
+			throw error
+		}
+	}
+
+	private async startLaunchdService(): Promise<void> {
+		try {
+			// Unload and stop service first
+			await this.stopLaunchdService()
+
+			const loadResult = Bun.spawnSync({
+				cmd: ['launchctl', 'load', this.launchdPlistPath],
+			})
+			if (loadResult.exitCode !== 0) {
+				throw new Error(`Failed to load service: ${loadResult.stderr.toString()}`)
+			}
+
+			const startResult = Bun.spawnSync({
+				cmd: ['launchctl', 'start', this.launchdServiceName],
+			})
+			if (startResult.exitCode !== 0) {
+				throw new Error(`Failed to start service: ${startResult.stderr.toString()}`)
+			}
+		} catch (error) {
+			console.error('Failed to start launchd service:', error)
+			throw error
+		}
+	}
+
+	private async stopSystemdService(): Promise<void> {
+		try {
+			await this.execSystemctl('stop', this.serviceName)
+			console.log(`Stopped ${this.serviceName}`)
+		} catch (error) {
+			console.error(`Failed to stop ${this.serviceName}:`, error)
+			throw error
+		}
+	}
+
+	private async stopLaunchdService(): Promise<void> {
+		try {
+			Bun.spawnSync({
+				cmd: ['launchctl', 'stop', this.launchdServiceName],
+			})
+			Bun.spawnSync({
+				cmd: ['launchctl', 'unload', this.launchdPlistPath],
+			})
+		} catch (error) {
+			console.error(`Failed to stop ${this.launchdServiceName}:`, error)
+			throw error
+		}
+	}
+
+	private execSystemctl(command: string, service?: string) {
+		const r = Bun.spawnSync({
+			cmd: service ? ['sudo', 'systemctl', command, service] : ['sudo', 'systemctl', command],
+		})
+		return r
+	}
+
+	private buildOrdererCommand(): string {
+		return 'orderer'
+	}
+
+	private buildOrdererEnvironment(mspConfigPath: string): NodeJS.ProcessEnv {
+		const [host, port] = this.opts.listenAddress.split(':')
+		return {
+			FABRIC_CFG_PATH: mspConfigPath,
+			ORDERER_ADMIN_TLS_CLIENTROOTCAS: `${mspConfigPath}/tlscacerts/cacert.pem`,
+			ORDERER_ADMIN_TLS_PRIVATEKEY: `${mspConfigPath}/tls.key`,
+			ORDERER_ADMIN_TLS_CERTIFICATE: `${mspConfigPath}/tls.crt`,
+			ORDERER_ADMIN_TLS_ROOTCAS: `${mspConfigPath}/tlscacerts/cacert.pem`,
+			ORDERER_FILELEDGER_LOCATION: `${mspConfigPath}/data`,
+			ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE: `${mspConfigPath}/tls.crt`,
+			ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY: `${mspConfigPath}/tls.key`,
+			ORDERER_GENERAL_CLUSTER_ROOTCAS: `${mspConfigPath}/tlscacerts/cacert.pem`,
+			ORDERER_GENERAL_LOCALMSPDIR: mspConfigPath,
+			ORDERER_GENERAL_TLS_CLIENTROOTCAS: `${mspConfigPath}/tlscacerts/cacert.pem`,
+			ORDERER_GENERAL_TLS_CERTIFICATE: `${mspConfigPath}/tls.crt`,
+			ORDERER_GENERAL_TLS_PRIVATEKEY: `${mspConfigPath}/tls.key`,
+			ORDERER_GENERAL_TLS_ROOTCAS: `${mspConfigPath}/tlscacerts/cacert.pem`,
+			ORDERER_ADMIN_LISTENADDRESS: this.opts.adminAddress,
+			ORDERER_GENERAL_LISTENADDRESS: host,
+			ORDERER_OPERATIONS_LISTENADDRESS: this.opts.operationsListenAddress,
+			ORDERER_GENERAL_LOCALMSPID: this.mspId,
+			ORDERER_GENERAL_LISTENPORT: port,
+			ORDERER_ADMIN_TLS_ENABLED: 'true',
+			ORDERER_CHANNELPARTICIPATION_ENABLED: 'true',
+			ORDERER_GENERAL_BATCHSIZE_MAXMESSAGECOUNT: '10',
+			ORDERER_GENERAL_BATCHTIMEOUT: '1s',
+			ORDERER_GENERAL_BOOTSTRAPMETHOD: 'none',
+			ORDERER_GENERAL_GENESISPROFILE: 'initial',
+			ORDERER_GENERAL_LEDGERTYPE: 'file',
+			FABRIC_LOGGING_SPEC: 'info',
+			ORDERER_GENERAL_MAXWINDOWSIZE: '1000',
+			ORDERER_GENERAL_ORDERERTYPE: 'etcdraft',
+			ORDERER_GENERAL_TLS_CLIENTAUTHREQUIRED: 'false',
+			ORDERER_GENERAL_TLS_ENABLED: 'true',
+			ORDERER_METRICS_PROVIDER: 'prometheus',
+			ORDERER_OPERATIONS_TLS_ENABLED: 'false',
+		}
+	}
+
+	private get serviceName(): string {
+		return `fabric-orderer-${slugify(this.opts.id)}`
+	}
+
+	private get launchdServiceName(): string {
+		return `com.fabriclaunch.orderer.${this.org.mspId.toLowerCase()}.${slugify(this.opts.id)}`
+	}
+
+	private get serviceFilePath(): string {
+		return `/etc/systemd/system/${this.serviceName}.service`
+	}
+
+	private get launchdPlistPath(): string {
+		return `${os.homedir()}/Library/LaunchAgents/${this.launchdServiceName}.plist`
+	}
 }

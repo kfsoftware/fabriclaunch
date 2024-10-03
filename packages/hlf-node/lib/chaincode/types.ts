@@ -13,6 +13,7 @@ export interface StartChaincodeOpts {
 	chaincodePath: string
 	chaincodeAddress: string
 	packageId: string
+	mspId: string
 }
 
 export type ChaincodeType = 'local';

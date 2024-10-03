@@ -13,6 +13,7 @@ type StartCmdResponse = {
 }
 type StartServiceResponse = {
 	mode: 'service'
+	type: 'systemd' | 'launchd'
 	serviceName: string
 }
 type StartDockerResponse = {
@@ -22,7 +23,7 @@ type StartDockerResponse = {
 export class LocalChaincode {
 	constructor(
 		private readonly opts: StartChaincodeOpts,
-		private readonly mode: 'cmd' | 'service'
+		private readonly mode: 'cmd' | 'service' | 'docker'
 	) {}
 	async start(): Promise<StartCmdResponse | StartServiceResponse | StartDockerResponse> {
 		// check if chaincodePath is a directory and exists
@@ -52,7 +53,6 @@ export class LocalChaincode {
 			if (r.exitCode !== 0) {
 				throw new Error('Go is not installed')
 			}
-			envVariablesForRunning.GOPATH = chaincodePath
 			envVariablesForRunning.GOCACHE = `${chaincodePath}/.cache/go-build`
 			envVariablesForRunning.GOMODCACHE = `${chaincodePath}/pkg/mod`
 			// get bin path for go
@@ -64,154 +64,74 @@ export class LocalChaincode {
 		}
 
 		switch (this.mode) {
-			case 'cmd': {
-				try {
-					const proc = Bun.spawn(chaincodeCommand, {
-						stdio: ['pipe', 'pipe', 'pipe'],
-						env: envVariablesForRunning,
-						onExit: (code) => {
-							console.log(chalk.blueBright(`Chaincode process exited with code ${code}`))
-						},
-					})
-					;(() => {
-						new Response(proc.stdout).body.pipeTo(
-							new WritableStream({
-								write(chunk) {
-									console.log(chalk.blueBright(Buffer.from(chunk).toString('utf-8')))
-								},
-							})
-						)
-						new Response(proc.stderr).body.pipeTo(
-							new WritableStream({
-								write(chunk) {
-									console.log(chalk.blueBright(Buffer.from(chunk).toString('utf-8')))
-								},
-							})
-						)
-					})()
-
-					return {
-						mode: 'cmd',
-						subprocess: proc,
-					}
-				} catch (error) {
-					console.error('Failed to start chaincode node:', (error as ShellError).message)
-					throw error
-				}
-			}
-			case 'service': {
-				try {
-					await this.createService(chaincodeCommand, envVariablesForRunning)
-					await this.startService()
-
-					return {
-						mode: 'service',
-						serviceName: this.serviceName,
-					}
-				} catch (error) {
-					console.error(`Failed to start ${this.serviceName}:`, error)
-					throw error
-				}
-			}
-
+			case 'cmd':
+				return this.startCmd(chaincodeCommand, envVariablesForRunning)
+			case 'service':
+				return this.startService(chaincodeCommand, envVariablesForRunning, chaincodePath)
+			case 'docker':
+				throw new Error('Not implemented')
 			default:
 				throw new Error(`Invalid mode: ${this.mode}`)
 		}
 	}
 
-	private execSystemctl(command: string, service?: string) {
-		const r = Bun.spawnSync({
-			cmd: service ? ['sudo', 'systemctl', command, service] : ['sudo', 'systemctl', command],
-		})
-		return r
-	}
-
-	private async startService(): Promise<void> {
-		const platform = os.platform()
-		if (platform === 'linux') {
-			await this.startSystemdService()
-		} else if (platform === 'darwin') {
-			await this.startLaunchdService()
-		} else {
-			throw new Error(`Unsupported platform: ${platform}`)
-		}
-	}
-
-	private async stopService(): Promise<void> {
+	private async startCmd(cmd: string[], env: NodeJS.ProcessEnv): Promise<StartCmdResponse> {
 		try {
-			await this.execSystemctl('stop', this.serviceName)
-			console.log(`Stopped ${this.serviceName}`)
-		} catch (error) {
-			console.error(`Failed to stop ${this.serviceName}:`, error)
-			throw error
-		}
-	}
+			const proc = Bun.spawn(cmd, {
+				stdio: ['pipe', 'pipe', 'pipe'],
+				env: env,
+				onExit: (code) => {
+					console.log(chalk.blueBright(`Chaincode process exited with code ${code}`))
+				},
+			})
+			;(() => {
+				new Response(proc.stdout).body.pipeTo(
+					new WritableStream({
+						write(chunk) {
+							console.log(chalk.blueBright(Buffer.from(chunk).toString('utf-8')))
+						},
+					})
+				)
+				new Response(proc.stderr).body.pipeTo(
+					new WritableStream({
+						write(chunk) {
+							console.log(chalk.blueBright(Buffer.from(chunk).toString('utf-8')))
+						},
+					})
+				)
+			})()
 
-	private async removeService(): Promise<void> {
-		try {
-			await this.stopService()
-			await this.execSystemctl('disable', this.serviceName)
-			await fs.unlink(this.serviceFilePath)
-			console.log(`Removed ${this.serviceName}`)
-		} catch (error) {
-			console.error(`Failed to remove ${this.serviceName}:`, error)
-			throw error
-		}
-	}
-
-	private get serviceName(): string {
-		return `fabric-chaincode-${slugify(this.opts.channelName)}-${slugify(this.opts.chaincodeName)}.service`
-	}
-
-	private get serviceFilePath(): string {
-		const platform = os.platform()
-		if (platform === 'linux') {
-			return `/etc/systemd/system/${this.serviceName}`
-		} else if (platform === 'darwin') {
-			return `~/Library/LaunchAgents/${this.serviceName}.plist`
-		} else {
-			throw new Error(`Unsupported platform: ${platform}`)
-		}
-	}
-
-	private async createService(cmd: string[], env: NodeJS.ProcessEnv): Promise<void> {
-		const platform = os.platform()
-		if (platform === 'linux') {
-			await this.createSystemdService(cmd, env)
-		} else if (platform === 'darwin') {
-			await this.createLaunchdService(cmd, env)
-		} else {
-			throw new Error(`Unsupported platform: ${platform}`)
-		}
-	}
-
-	private async startSystemdService(): Promise<void> {
-		try {
-			await this.execSystemctl('daemon-reload')
-			await this.execSystemctl('enable', this.serviceName)
-			await this.execSystemctl('start', this.serviceName)
-			await this.execSystemctl('restart', this.serviceName)
-			console.log(`Started ${this.serviceName}`)
-		} catch (error) {
-			console.error(`Failed to start ${this.serviceName}:`, error)
-			throw error
-		}
-	}
-
-	private async startLaunchdService(): Promise<void> {
-		try {
-			const { stdout, stderr } = await $`launchctl load ${this.serviceFilePath}`.quiet()
-			if (stderr) {
-				throw new Error(stderr.toString('utf-8'))
+			return {
+				mode: 'cmd',
+				subprocess: proc,
 			}
-			console.log(`Started ${this.serviceName}`)
+		} catch (error) {
+			console.error('Failed to start chaincode node:', (error as ShellError).message)
+			throw error
+		}
+	}
+
+	private async startService(cmd: string[], env: NodeJS.ProcessEnv, dirPath: string): Promise<StartServiceResponse> {
+		const platform = os.platform()
+		try {
+			if (platform === 'linux') {
+				await this.createSystemdService(cmd, env, dirPath)
+				await this.startSystemdService()
+				return { mode: 'service', type: 'systemd', serviceName: this.serviceName }
+			} else if (platform === 'darwin') {
+				await this.createLaunchdService(cmd, env, dirPath)
+				await this.startLaunchdService()
+				return { mode: 'service', type: 'launchd', serviceName: this.serviceName }
+			} else {
+				throw new Error(`Unsupported platform for service mode: ${platform}`)
+			}
 		} catch (error) {
 			console.error(`Failed to start ${this.serviceName}:`, error)
 			throw error
 		}
 	}
 
-	private async createSystemdService(cmd: string[], env: NodeJS.ProcessEnv): Promise<void> {
+	private async createSystemdService(cmd: string[], env: NodeJS.ProcessEnv, dirPath: string): Promise<void> {
 		const envString = Object.entries(env)
 			.map(([key, value]) => `Environment="${key}=${value}"`)
 			.join('\n')
@@ -223,7 +143,7 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=${this.opts.chaincodePath}
+WorkingDirectory=${dirPath}
 ExecStart=${cmd.join(' ')}
 Restart=on-failure
 RestartSec=10
@@ -232,7 +152,7 @@ ${envString}
 
 [Install]
 WantedBy=multi-user.target
-	`
+`
 
 		try {
 			await fs.writeFile(this.serviceFilePath, serviceContent, { mode: 0o644 })
@@ -242,43 +162,152 @@ WantedBy=multi-user.target
 		}
 	}
 
-	private async createLaunchdService(cmd: string[], env: NodeJS.ProcessEnv): Promise<void> {
-		const plistContent = `
+	private async createLaunchdService(cmd: string[], env: NodeJS.ProcessEnv, dirPath: string): Promise<void> {
+		const envString = Object.entries(env)
+			.map(
+				([key, value]) => `<key>${key}</key>
+    <string>${value}</string>`
+			)
+			.join('\n')
+
+		const serviceContent = `
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>Label</key>
-    <string>${this.serviceName}</string>
-    <key>ProgramArguments</key>
-    <array>
-        ${cmd.map((arg) => `<string>${arg}</string>`).join('\n        ')}
-    </array>
-    <key>EnvironmentVariables</key>
-    <dict>
-        ${Object.entries(env)
-			.map(([key, value]) => `<key>${key}</key>\n        <string>${value}</string>`)
-			.join('\n        ')}
-    </dict>
-    <key>WorkingDirectory</key>
-    <string>${this.opts.chaincodePath}</string>
-    <key>RunAtLoad</key>
-    <true/>
-    <key>KeepAlive</key>
-    <true/>
-    <key>StandardOutPath</key>
-    <string>/tmp/${this.serviceName}.log</string>
-    <key>StandardErrorPath</key>
-    <string>/tmp/${this.serviceName}.err</string>
+  <key>Label</key>
+  <string>${this.launchdServiceName}</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-c</string>
+    <string>${cmd.join(' ')}</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>WorkingDirectory</key>
+  <string>${dirPath}</string>
+  <key>StandardOutPath</key>
+  <string>${dirPath}/${this.serviceName}.log</string>
+  <key>StandardErrorPath</key>
+  <string>${dirPath}/${this.serviceName}.err</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    ${envString}
+  </dict>
 </dict>
 </plist>
-    `
+`
 
 		try {
-			await fs.writeFile(this.serviceFilePath, plistContent, { mode: 0o644 })
+			await fs.writeFile(this.launchdPlistPath, serviceContent, { mode: 0o644 })
 		} catch (error) {
 			console.error('Failed to create launchd service file:', error)
 			throw error
 		}
+	}
+
+	private async startSystemdService(): Promise<void> {
+		try {
+			await this.execSystemctl('daemon-reload')
+			await this.execSystemctl('enable', this.serviceName)
+			await this.execSystemctl('start', this.serviceName)
+			await this.execSystemctl('restart', this.serviceName)
+		} catch (error) {
+			throw error
+		}
+	}
+
+	private async startLaunchdService(): Promise<void> {
+		try {
+			// Unload and stop service first
+			await this.stopLaunchdService()
+
+			const loadResult = Bun.spawnSync({
+				cmd: ['launchctl', 'load', this.launchdPlistPath],
+			})
+			if (loadResult.exitCode !== 0) {
+				throw new Error(`Failed to load service: ${loadResult.stderr.toString()}`)
+			}
+
+			const startResult = Bun.spawnSync({
+				cmd: ['launchctl', 'start', this.launchdServiceName],
+			})
+			if (startResult.exitCode !== 0) {
+				throw new Error(`Failed to start service: ${startResult.stderr.toString()}`)
+			}
+		} catch (error) {
+			console.error('Failed to start launchd service:', error)
+			throw error
+		}
+	}
+
+	async stop(): Promise<void> {
+		switch (this.mode) {
+			case 'cmd': {
+				throw new Error("Can't stop chaincode process using cmd mode")
+			}
+			case 'service': {
+				const platform = os.platform()
+				if (platform === 'linux') {
+					await this.stopSystemdService()
+				} else if (platform === 'darwin') {
+					await this.stopLaunchdService()
+				} else {
+					throw new Error(`Unsupported platform for service mode: ${platform}`)
+				}
+				break
+			}
+			case 'docker': {
+				throw new Error('Not implemented')
+			}
+		}
+	}
+
+	private async stopSystemdService(): Promise<void> {
+		try {
+			await this.execSystemctl('stop', this.serviceName)
+			console.log(`Stopped ${this.serviceName}`)
+		} catch (error) {
+			console.error(`Failed to stop ${this.serviceName}:`, error)
+			throw error
+		}
+	}
+
+	private async stopLaunchdService(): Promise<void> {
+		try {
+			Bun.spawnSync({
+				cmd: ['launchctl', 'stop', this.launchdServiceName],
+			})
+			Bun.spawnSync({
+				cmd: ['launchctl', 'unload', this.launchdPlistPath],
+			})
+		} catch (error) {
+			console.error(`Failed to stop ${this.launchdServiceName}:`, error)
+			throw error
+		}
+	}
+
+	private execSystemctl(command: string, service?: string) {
+		const r = Bun.spawnSync({
+			cmd: service ? ['sudo', 'systemctl', command, service] : ['sudo', 'systemctl', command],
+		})
+		return r
+	}
+
+	private get serviceName(): string {
+		return `fabric-chaincode-${this.opts.mspId.toLowerCase()}-${slugify(this.opts.chaincodeName)}`
+	}
+
+	private get launchdServiceName(): string {
+		return `com.fabriclaunch.chaincode.${this.opts.mspId.toLowerCase()}-${slugify(this.opts.chaincodeName)}`
+	}
+
+	private get serviceFilePath(): string {
+		return `/etc/systemd/system/${this.serviceName}.service`
+	}
+
+	private get launchdPlistPath(): string {
+		return `${os.homedir()}/Library/LaunchAgents/${this.launchdServiceName}.plist`
 	}
 }

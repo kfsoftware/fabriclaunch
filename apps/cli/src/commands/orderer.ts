@@ -1,15 +1,15 @@
-import { LocalOrderer, LocalOrg } from "@repo/hlf-node";
-import chalk from "chalk";
-import slugify from "slugify";
-import { Arg, Command, CommandClass, Flag } from "../cli-decorators";
-import ora from "ora";
-import { execute } from "../graphql/client/execute";
-import { ImportOrdererDocument } from "../graphql/client/graphql";
-import { storage } from "../storage";
-import { registry } from "../registry/registry";
-import { DEFAULT_TENANT_NAME } from "../constants";
+import { LocalOrderer, LocalOrg } from '@repo/hlf-node'
+import chalk from 'chalk'
+import slugify from 'slugify'
+import { Arg, Command, CommandClass, Flag } from '../cli-decorators'
+import ora from 'ora'
+import { execute } from '../graphql/client/execute'
+import { ImportOrdererDocument } from '../graphql/client/graphql'
+import { storage } from '../storage'
+import { registry } from '../registry/registry'
+import { DEFAULT_TENANT_NAME } from '../constants'
 @CommandClass({
-	name: 'orderer'
+	name: 'orderer',
 })
 export class OrdererCommands {
 	@Command({
@@ -29,7 +29,7 @@ export class OrdererCommands {
 			stoppingordererSpinner.fail(`No orderers found for MSP ${flags.mspId}`)
 			return
 		}
-		const ordererConfig = orderers.find(orderer => orderer.ordererName === ordererId)
+		const ordererConfig = orderers.find((orderer) => orderer.ordererName === ordererId)
 		if (!ordererConfig) {
 			stoppingordererSpinner.fail(`Orderer ${ordererId} not found`)
 			return
@@ -42,7 +42,7 @@ export class OrdererCommands {
 				listenAddress: ordererConfig.listenAddress,
 				operationsListenAddress: ordererConfig.operationsListenAddress,
 				adminAddress: ordererConfig.adminAddress,
-				domainNames: []
+				domainNames: [],
 			},
 			new LocalOrg(flags.mspId),
 			ordererConfig.mode
@@ -61,7 +61,6 @@ export class OrdererCommands {
 		// add flags for external endpoint, listen address, chaincode address, events address, operations listen address
 		@Flag({ name: 'externalEndpoint', alias: 'e', description: 'External endpoint for the orderer, example: 0.0.0.0:7050', type: 'string', required: true })
 		@Flag({ name: 'listenAddress', alias: 'l', description: 'Listen address for the orderer, example: 0.0.0.0:7050', type: 'string', required: true })
-
 		@Flag({ name: 'operationsListenAddress', alias: 'o', description: 'Operations listen address for the orderer, example: 0.0.0.0:7051', type: 'string', required: true })
 		@Flag({ name: 'adminAddress', alias: 'a', description: 'Admin address for the orderer, example: 0.0.0.0:7052', type: 'string', required: true })
 		// optional array of hosts
@@ -73,7 +72,7 @@ export class OrdererCommands {
 		flags: {
 			mspId: string
 			externalEndpoint: string
-			mode: "cmd" | "systemd" | "docker"
+			mode: 'cmd' | 'service' | 'docker'
 			listenAddress: string
 			adminAddress: string
 			tenant?: string
@@ -84,11 +83,11 @@ export class OrdererCommands {
 	): Promise<void> {
 		const ordererId = slugify(ordererName)
 		const initSpinner = ora(`Initializing orderer ${ordererId}`).start()
-		if (!await storage.checkIfLoggedIn()) {
+		if (!(await storage.checkIfLoggedIn())) {
 			initSpinner.fail('Please login first')
 			return
 		}
-		if (flags.mode !== "cmd" && flags.mode !== "systemd") {
+		if (flags.mode !== 'cmd' && flags.mode !== 'service') {
 			initSpinner.fail(chalk.red(`Invalid mode ${flags.mode}`))
 			return
 		}
@@ -111,7 +110,7 @@ export class OrdererCommands {
 				listenAddress: flags.listenAddress,
 				operationsListenAddress: flags.operationsListenAddress,
 				adminAddress: flags.adminAddress,
-				domainNames: flags.hosts
+				domainNames: flags.hosts,
 			},
 			localOrg,
 			flags.mode
@@ -127,8 +126,8 @@ export class OrdererCommands {
 				tenantSlug,
 				region: flags.region,
 				tlsCert: ordererConfig.tlsCert,
-				url: flags.externalEndpoint
-			}
+				url: flags.externalEndpoint,
+			},
 		})
 		if (res.errors && res.errors.length > 0) {
 			registerSpinner.fail(res.errors[0].message)
@@ -138,26 +137,25 @@ export class OrdererCommands {
 		}
 		await registry.storeOrdererConfig(flags.mspId, ordererConfig)
 		const startingOrdererSpinner = ora(`Starting orderer ${ordererId}`).start()
-		if (flags.mode === "cmd" && await registry.isNodeLocked(flags.mspId, ordererConfig.ordererName, "orderer")) {
+		if (flags.mode === 'cmd' && (await registry.isNodeLocked(flags.mspId, ordererConfig.ordererName, 'orderer'))) {
 			startingOrdererSpinner.fail(`Orderer ${ordererId} is already running`)
 			return
 		}
 		const response = await orderer.start()
 		switch (response.mode) {
-			case "cmd":
-				await registry.lockNode(flags.mspId, ordererConfig.ordererName, "orderer", response.subprocess.pid)
+			case 'cmd':
+				await registry.lockNode(flags.mspId, ordererConfig.ordererName, 'orderer', response.subprocess.pid)
 				startingOrdererSpinner.succeed(`Started orderer ${ordererId}`)
-				break;
-			case "systemd":
-				startingOrdererSpinner.succeed(`Started orderer using systemd service name ${response.serviceName}`)
 				break
-			case "docker":
+			case 'service':
+				startingOrdererSpinner.succeed(`Started orderer using service name ${response.serviceName}`)
+				break
+			case 'docker':
 				startingOrdererSpinner.succeed(`Started orderer using docker container id ${response.containerName}`)
 				break
 			default:
-				break;
+				break
 		}
 		startingOrdererSpinner.succeed(`Started orderer ${ordererId}`)
 	}
 }
-

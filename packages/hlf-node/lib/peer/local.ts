@@ -968,7 +968,12 @@ metrics:
 		const dirPath = path.join(homeDir, `.fabriclaunch/peers/${slugifiedId}`)
 		const mspConfigPath = path.join(dirPath, 'config')
 		const dataConfigPath = path.join(dirPath, 'data')
-		const cmd = this.buildPeerCommand()
+		// find peer binary and throw error if not found
+		const peerBinary = await this.findPeerBinary()
+		if (!peerBinary) {
+			throw new Error('Peer binary not found')
+		}
+		const cmd = this.buildPeerCommand(peerBinary)
 		const env = this.buildPeerEnvironment(mspConfigPath)
 
 		switch (this.mode) {
@@ -982,7 +987,30 @@ metrics:
 				throw new Error(`Invalid mode: ${this.mode}`)
 		}
 	}
+	private async findPeerBinary(): Promise<string> {
+		const platform = os.platform()
+		let findPeerBinaryCommand: string[]
 
+		if (platform === 'win32') {
+			findPeerBinaryCommand = ['where', 'peer']
+		} else {
+			findPeerBinaryCommand = ['which', 'peer']
+		}
+
+		const result = Bun.spawnSync(findPeerBinaryCommand)
+
+		if (result.exitCode !== 0) {
+			throw new Error('Failed to find peer binary')
+		}
+
+		const peerBinaryPath = result.stdout.toString().trim()
+
+		if (!peerBinaryPath) {
+			throw new Error('Peer binary not found in PATH')
+		}
+
+		return peerBinaryPath
+	}
 	private startCmd(cmd: string, env: NodeJS.ProcessEnv): StartCmdResponse {
 		try {
 			const proc = Bun.spawn(cmd.split(' '), {
@@ -1120,8 +1148,9 @@ WantedBy=multi-user.target
     <string>${value}</string>`
 			)
 			.join('\n')
+		// ${cmd.split(' ').map((c) => `<string>${c}</string>`).join('\n')}
 
-		const serviceContent = `
+		let serviceContent = `
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -1130,14 +1159,16 @@ WantedBy=multi-user.target
   <string>${this.launchdServiceName}</string>
   <key>ProgramArguments</key>
   <array>
-  ${cmd.split(' ').map((c) => `<string>${c}</string>`).join('\n')}
+      <string>/bin/bash</string>
+      <string>-c</string>
+      <string>${cmd}</string>
   </array>
-  <key>WorkingDirectory</key>
-  <string>${dirPath}</string>
+  <key>RunAtLoad</key>
+  <true/>
   <key>StandardOutPath</key>
-  <string>/var/log/${this.serviceName}.log</string>
+  <string>${dirPath}/${this.serviceName}.log</string>
   <key>StandardErrorPath</key>
-  <string>/var/log/${this.serviceName}.err</string>
+  <string>${dirPath}/${this.serviceName}.err</string>
   <key>EnvironmentVariables</key>
   <dict>
     ${envString}
@@ -1145,7 +1176,29 @@ WantedBy=multi-user.target
 </dict>
 </plist>
 `
+		const serviceContent1 = `
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>${this.launchdServiceName}</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-c</string>
+        <string>echo "Hello from launchd111 $(date)" >> ${os.homedir()}/launchd_test.log</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>${os.homedir()}/launchd_test.out</string>
+    <key>StandardErrorPath</key>
+    <string>${os.homedir()}/launchd_test.err</string>
+</dict>
+</plist>
 
+`
 		try {
 			await fs.writeFile(this.launchdPlistPath, serviceContent, { mode: 0o644 })
 		} catch (error) {
@@ -1167,14 +1220,23 @@ WantedBy=multi-user.target
 
 	private async startLaunchdService(): Promise<void> {
 		try {
-			// switch to Bun.spawnSync
-			Bun.spawnSync({
+			// unload and stop service
+			await this.stopLaunchdService()
+			const loadResult = Bun.spawnSync({
 				cmd: ['launchctl', 'load', this.launchdPlistPath],
 			})
-			Bun.spawnSync({
-				cmd: ['launchctl', 'start', this.serviceName],
+			if (loadResult.exitCode !== 0) {
+				throw new Error(`Failed to load service: ${loadResult.stderr.toString()}`)
+			}
+
+			const startResult = Bun.spawnSync({
+				cmd: ['launchctl', 'start', this.launchdServiceName],
 			})
+			if (startResult.exitCode !== 0) {
+				throw new Error(`Failed to start service: ${startResult.stderr.toString()}`)
+			}
 		} catch (error) {
+			console.error('Failed to start launchd service:', error)
 			throw error
 		}
 	}
@@ -1182,7 +1244,6 @@ WantedBy=multi-user.target
 	private async stopSystemdService(): Promise<void> {
 		try {
 			await this.execSystemctl('stop', this.serviceName)
-			console.log(`Stopped ${this.serviceName}`)
 		} catch (error) {
 			console.error(`Failed to stop ${this.serviceName}:`, error)
 			throw error
@@ -1197,7 +1258,6 @@ WantedBy=multi-user.target
 			Bun.spawnSync({
 				cmd: ['launchctl', 'unload', this.launchdPlistPath],
 			})
-			console.log(`Stopped ${this.serviceName}`)
 		} catch (error) {
 			console.error(`Failed to stop ${this.serviceName}:`, error)
 			throw error
@@ -1215,8 +1275,8 @@ WantedBy=multi-user.target
 		return r
 	}
 
-	private buildPeerCommand(): string {
-		return 'peer node start'
+	private buildPeerCommand(peerBinary: string): string {
+		return `${peerBinary} node start`
 	}
 
 	private buildPeerEnvironment(mspConfigPath: string): NodeJS.ProcessEnv {
@@ -1276,6 +1336,6 @@ WantedBy=multi-user.target
 	}
 
 	private get launchdPlistPath(): string {
-		return `${os.homedir()}/Library/Services/${this.serviceName}.plist`
+		return `${os.homedir()}/Library/LaunchAgents/${this.launchdServiceName}.plist`
 	}
 }

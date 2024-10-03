@@ -39,3 +39,4 @@ dist/
 .env
 .idea
 .vscode
+multilocation*
