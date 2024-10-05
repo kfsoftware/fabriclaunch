@@ -78,6 +78,7 @@ export class PeerCommands {
 			mspId: string
 			externalEndpoint: string
 			listenAddress: string
+			type: 'platform' | 'local'
 			mode: 'cmd' | 'service' | 'docker'
 			chaincodeAddress: string
 			region: string
@@ -88,9 +89,14 @@ export class PeerCommands {
 	): Promise<void> {
 		const peerId = slugify(peerName)
 		const initSpinner = ora(`Initializing peer ${peerId}`).start()
-		if (!(await storage.checkIfLoggedIn())) {
-			initSpinner.fail('Please login first')
-			return
+		if (!flags.type) {
+			flags.type = 'platform'
+		}
+		if (flags.type === 'platform') {
+			if (!(await storage.checkIfLoggedIn())) {
+				initSpinner.fail('Please login first')
+				return
+			}
 		}
 		if (flags.mode !== 'cmd' && flags.mode !== 'service' && flags.mode !== 'docker') {
 			initSpinner.fail(chalk.red(`Invalid mode ${flags.mode}`))
@@ -124,23 +130,25 @@ export class PeerCommands {
 		)
 		const peerConfig = await peer.init()
 		initSpinner.succeed(`Initialized peer ${peerId}`)
-		const registerSpinner = ora(`Registering peer ${peerId}`).start()
-		const res = await execute(ImportPeerDocument, {
-			input: {
-				mspId: flags.mspId,
-				name: peerId,
-				signCert: peerConfig.signCert,
-				tenantSlug,
-				tlsCert: peerConfig.tlsCert,
-				url: flags.externalEndpoint,
-				region: flags.region,
-			},
-		})
-		if (res.errors && res.errors.length > 0) {
-			registerSpinner.fail(res.errors[0].message)
-			return
-		} else {
-			registerSpinner.succeed(`Registered peer ${peerId}`)
+		if (flags.type === 'platform') {
+			const registerSpinner = ora(`Registering peer ${peerId}`).start()
+			const res = await execute(ImportPeerDocument, {
+				input: {
+					mspId: flags.mspId,
+					name: peerId,
+					signCert: peerConfig.signCert,
+					tenantSlug,
+					tlsCert: peerConfig.tlsCert,
+					url: flags.externalEndpoint,
+					region: flags.region,
+				},
+			})
+			if (res.errors && res.errors.length > 0) {
+				registerSpinner.fail(res.errors[0].message)
+				return
+			} else {
+				registerSpinner.succeed(`Registered peer ${peerId}`)
+			}
 		}
 		await registry.storePeerConfig(flags.mspId, peerConfig)
 		const startingPeerSpinner = ora(`Starting peer ${peerId}`).start()
