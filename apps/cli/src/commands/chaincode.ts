@@ -11,15 +11,13 @@ import ora from 'ora'
 import os from 'os'
 import path from 'path'
 import slugify from 'slugify'
-import { Readable } from 'stream'
 import { Arg, Command, CommandClass, Flag } from '../cli-decorators'
 import { API_URL, DEFAULT_TENANT_NAME } from '../constants'
 import { execute } from '../graphql/client/execute'
-import { ApproveChaincodeProposalDocument, AuditLogType, CommitChaincodeProposalDocument, GetChaincodeProposalDocument, ProposeChaincodeCreationDocument } from '../graphql/client/graphql'
+import { ApproveChaincodeProposalDocument, CommitChaincodeProposalDocument, GetChaincodeProposalDocument, ProposeChaincodeCreationDocument } from '../graphql/client/graphql'
 import { registry } from '../registry/registry'
 import { storage } from '../storage'
 import { computeFileHash, streamToBlob } from '../utils'
-import { createAuditLog } from '../utils/audit'
 import { generateChaincodePackage } from '../utils/chaincode'
 import { discoverChannelConfig, discoverPeersConfig, getOnePeerPerOrg } from '../utils/channel'
 import { createTempDirSync, createTempFile, createTempFileSync } from '../utils/file'
@@ -724,7 +722,8 @@ NodeOUs:
 			commitChaincodeSpinner.succeed(`Chaincode comitted`)
 		} catch (e) {
 			const bunError = e as ShellError
-			commitChaincodeSpinner.fail(`Error comitting chaincode: ${bunError.stderr.toString('utf-8')}`)
+			commitChaincodeSpinner.fail(`Error committing chaincode: ${bunError.stderr.toString('utf-8')}`)
+			return
 		}
 		const commitRes = await execute(CommitChaincodeProposalDocument, {
 			input: {
@@ -736,11 +735,6 @@ NodeOUs:
 		if (commitRes.errors && commitRes.errors.length > 0) {
 			console.log(chalk.red(`Error upload committed status to platform: ${commitRes.errors[0].message}`))
 		}
-		await createAuditLog(tenantSlug, flags.org, AuditLogType.ChaincodeCommitted, {
-			chaincodeName: proposal.chaincodeName,
-			channelName: proposal.channelName,
-			version: DEFAULT_VERSION,
-		})
 	}
 
 	// bun run ./src/index.ts chaincode query -c mychannel -n mycc -c '{"Args":["query","a"]}'

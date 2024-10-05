@@ -102,6 +102,7 @@ const AuditLogsDetails: React.FC<{ log: AuditLogDB }> = ({ log }) => {
 						<p>Chaincode Name: {chaincodeCommittedDetails.chaincodeName}</p>
 						<p>Channel Name: {chaincodeCommittedDetails.channelName}</p>
 						<p>Version: {chaincodeCommittedDetails.version}</p>
+						{chaincodeCommittedDetails.sequence && <p>Sequence: {chaincodeCommittedDetails.sequence}</p>}
 					</>
 				)
 			case 'TENANT_CREATED':
