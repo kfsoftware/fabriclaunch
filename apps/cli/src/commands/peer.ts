@@ -61,6 +61,7 @@ export class PeerCommands {
 		@Arg({ name: 'name', description: 'Name of the peer to create' })
 		peerName: string,
 		@Flag({ name: 'mspId', alias: 'm', description: 'MSP to create the peer for', type: 'string', required: true })
+		@Flag({ name: 'type', alias: 't', description: 'Type of peer to create', type: 'string', required: false })
 		// add flags for external endpoint, listen address, chaincode address, events address, operations listen address
 		@Flag({ name: 'externalEndpoint', alias: 'e', description: 'External endpoint for the peer, example: 0.0.0.0:7051', type: 'string', required: true })
 		@Flag({ name: 'listenAddress', alias: 'l', description: 'Listen address for the peer, example: 0.0.0.0:7051', type: 'string', required: true })
@@ -78,7 +79,7 @@ export class PeerCommands {
 			mspId: string
 			externalEndpoint: string
 			listenAddress: string
-			type: 'platform' | 'local'
+			type?: 'platform' | 'local'
 			mode: 'cmd' | 'service' | 'docker'
 			chaincodeAddress: string
 			region: string
@@ -101,10 +102,6 @@ export class PeerCommands {
 		if (flags.mode !== 'cmd' && flags.mode !== 'service' && flags.mode !== 'docker') {
 			initSpinner.fail(chalk.red(`Invalid mode ${flags.mode}`))
 			return
-		}
-		let tenantSlug = flags.tenant
-		if (!tenantSlug) {
-			tenantSlug = DEFAULT_TENANT_NAME
 		}
 
 		const localOrg = new LocalOrg(flags.mspId)
@@ -131,6 +128,10 @@ export class PeerCommands {
 		const peerConfig = await peer.init()
 		initSpinner.succeed(`Initialized peer ${peerId}`)
 		if (flags.type === 'platform') {
+			let tenantSlug = flags.tenant
+			if (!tenantSlug) {
+				tenantSlug = DEFAULT_TENANT_NAME
+			}
 			const registerSpinner = ora(`Registering peer ${peerId}`).start()
 			const res = await execute(ImportPeerDocument, {
 				input: {
