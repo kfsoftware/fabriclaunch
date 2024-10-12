@@ -110,6 +110,7 @@ export class LocalOrg implements IOrg {
 			throw new Error('Invalid certificate type');
 		}
 
+	
 		const certificate = await this.generateCertificate(
 			{
 				commonName: nodeId,

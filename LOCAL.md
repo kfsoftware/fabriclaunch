@@ -40,10 +40,11 @@ sudo chmod +x /usr/local/bin/cfssljson
 # Placeholder for Org1MSP CA setup commands
 fabriclaunch auth login
 # generate a name for a consortium between important companies
-export TENANT_NAME="tenant"
+export CONSORTIUM_NAME="meetup-lfdt"
 
 fabriclaunch org create Org1MSP --type local
-fabriclaunch org register Org1MSP --tenant ${TENANT_NAME}
+fabriclaunch org register Org1MSP --tenant ${CONSORTIUM_NAME}
+
 
 ```
 
@@ -57,7 +58,7 @@ fabriclaunch org register Org1MSP --tenant ${TENANT_NAME}
 
 export PUBLIC_IP="peer0-org1.localho.st" # points to 127.0.0.1
 # service mode means that will use systemd in linux or launchd in macos
-fabriclaunch peer create org1-peer0 --tenant ${TENANT_NAME} --mode=service --region=nyc --mspId Org1MSP \
+fabriclaunch peer create org1-peer0 --tenant ${CONSORTIUM_NAME} --mode=service --region=nyc --mspId Org1MSP \
   --externalEndpoint="${PUBLIC_IP}:7051" \
   --listenAddress="0.0.0.0:7051" \
   --chaincodeAddress="0.0.0.0:7052" \
@@ -65,7 +66,7 @@ fabriclaunch peer create org1-peer0 --tenant ${TENANT_NAME} --mode=service --reg
   --operationsListenAddress="0.0.0.0:7054" \
   -h localhost -h "${PUBLIC_IP}"
 
-fabriclaunch peer stop org1-peer0
+# fabriclaunch peer stop org1-peer0 --mspId Org1MSP
 
 ```
 
@@ -78,9 +79,9 @@ fabriclaunch peer stop org1-peer0
 
 ```bash
 
-export TENANT_NAME="tenant"
+export CONSORTIUM_NAME="meetup-lfdt"
 fabriclaunch org create OrdererOrg --type local
-fabriclaunch org register OrdererOrg --tenant ${TENANT_NAME}
+fabriclaunch org register OrdererOrg --tenant ${CONSORTIUM_NAME}
 
 ```
 
@@ -91,9 +92,9 @@ fabriclaunch org register OrdererOrg --tenant ${TENANT_NAME}
 3. Start the orderer nodes
 
 ```bash
-export TENANT_NAME="tenant"
+export CONSORTIUM_NAME="meetup-lfdt"
 export PUBLIC_IP="orderer0-org1.localho.st"
-fabriclaunch orderer create orderer0-org1 --tenant ${TENANT_NAME} --mode=service --region=nyc --mspId OrdererOrg \
+fabriclaunch orderer create orderer0-org1 --tenant ${CONSORTIUM_NAME} --mode=service --region=nyc --mspId OrdererOrg \
   --externalEndpoint="${PUBLIC_IP}:7060" \
   --listenAddress="0.0.0.0:7060" \
   --adminAddress="0.0.0.0:7061" \
@@ -102,7 +103,7 @@ fabriclaunch orderer create orderer0-org1 --tenant ${TENANT_NAME} --mode=service
 
 
 export PUBLIC_IP="orderer1-org1.localho.st"
-fabriclaunch orderer create orderer1-org1 --tenant ${TENANT_NAME} --mode=service --region=nyc --mspId OrdererOrg \
+fabriclaunch orderer create orderer1-org1 --tenant ${CONSORTIUM_NAME} --mode=service --region=nyc --mspId OrdererOrg \
   --externalEndpoint="${PUBLIC_IP}:7070" \
   --listenAddress="0.0.0.0:7070" \
   --adminAddress="0.0.0.0:7071" \
@@ -110,13 +111,17 @@ fabriclaunch orderer create orderer1-org1 --tenant ${TENANT_NAME} --mode=service
   -h localhost -h "${PUBLIC_IP}"
 
 export PUBLIC_IP="orderer2-org1.localho.st"
-fabriclaunch orderer create orderer2-org1 --tenant ${TENANT_NAME} --mode=service --region=nyc --mspId OrdererOrg \
+fabriclaunch orderer create orderer2-org1 --tenant ${CONSORTIUM_NAME} --mode=service --region=nyc --mspId OrdererOrg \
   --externalEndpoint="${PUBLIC_IP}:7080" \
   --listenAddress="0.0.0.0:7080" \
   --adminAddress="0.0.0.0:7081" \
   --operationsListenAddress="0.0.0.0:7082" \
   -h localhost -h "${PUBLIC_IP}"
 
+
+# fabriclaunch orderer stop orderer0-org1 --mspId OrdererOrg
+# fabriclaunch orderer stop orderer1-org1 --mspId OrdererOrg
+# fabriclaunch orderer stop orderer2-org1 --mspId OrdererOrg
 
 ```
 
@@ -127,11 +132,19 @@ fabriclaunch orderer create orderer2-org1 --tenant ${TENANT_NAME} --mode=service
 3. Join the peer to the channel
 
 ```bash
-export TENANT_NAME="tenant"
+export CONSORTIUM_NAME="meetup-lfdt"
 fabriclaunch channel propose multilocation \
 	--mspId=Org1MSP \
-  --tenant ${TENANT_NAME} \
+  --tenant ${CONSORTIUM_NAME} \
 	--peerOrgs "Org1MSP" \
+	--ordererOrgs="OrdererOrg" \
+	--consenters="OrdererOrg.orderer0-org1,OrdererOrg.orderer1-org1,OrdererOrg.orderer2-org1"
+
+
+fabriclaunch channel propose multilocationorg2 \
+	--mspId=Org1MSP \
+  --tenant ${CONSORTIUM_NAME} \
+	--peerOrgs "Org1MSP,Org2MSP" \
 	--ordererOrgs="OrdererOrg" \
 	--consenters="OrdererOrg.orderer0-org1,OrdererOrg.orderer1-org1,OrdererOrg.orderer2-org1"
 
@@ -140,11 +153,12 @@ fabriclaunch channel propose multilocation \
 ### Accept the channel proposal
 
 ```bash
-export CHANNEL_PROPOSAL_ID="prop_multilocation_1728401939102"
-fabriclaunch channel accept "${CHANNEL_PROPOSAL_ID}"  -o Org1MSP --tenant ${TENANT_NAME}
-fabriclaunch channel accept "${CHANNEL_PROPOSAL_ID}"  -o OrdererOrg --tenant ${TENANT_NAME}
+export CHANNEL_PROPOSAL_ID="prop_multilocationorg2_1728489265147"
+fabriclaunch channel accept "${CHANNEL_PROPOSAL_ID}"  -o Org1MSP --tenant ${CONSORTIUM_NAME}
+fabriclaunch channel accept "${CHANNEL_PROPOSAL_ID}"  -o Org2MSP --tenant ${CONSORTIUM_NAME}
+fabriclaunch channel accept "${CHANNEL_PROPOSAL_ID}"  -o OrdererOrg --tenant ${CONSORTIUM_NAME}
 
-# fabriclaunch channel accept "${CHANNEL_PROPOSAL_ID}"  -o Org2MSP --tenant ${TENANT_NAME}
+# fabriclaunch channel accept "${CHANNEL_PROPOSAL_ID}"  -o Org2MSP --tenant ${CONSORTIUM_NAME}
 
 ```
 
@@ -152,11 +166,11 @@ fabriclaunch channel accept "${CHANNEL_PROPOSAL_ID}"  -o OrdererOrg --tenant ${T
 ```bash
 
 # join orderers
-fabriclaunch consensus create "${CHANNEL_PROPOSAL_ID}" -o OrdererOrg --tenant ${TENANT_NAME}
+fabriclaunch consensus create "${CHANNEL_PROPOSAL_ID}" -o OrdererOrg --tenant ${CONSORTIUM_NAME}
 
-# join peers
-fabriclaunch channel join ${CHANNEL_PROPOSAL_ID}  -o Org1MSP -p org1-peer0 --tenant ${TENANT_NAME}
-# fabriclaunch channel join ${CHANNEL_PROPOSAL_ID}  -o Org2MSP -p org2msp-peer0 --tenant ${TENANT_NAME}
+# join peers + setting anchor peers
+fabriclaunch channel join ${CHANNEL_PROPOSAL_ID}  -o Org1MSP -p org1-peer0 --tenant ${CONSORTIUM_NAME}
+fabriclaunch channel join ${CHANNEL_PROPOSAL_ID}  -o Org2MSP -p org2msp-peer0 --tenant ${CONSORTIUM_NAME}
 ```
 
 ## Step 4: Install and deploy the chaincode
@@ -170,10 +184,14 @@ fabriclaunch channel join ${CHANNEL_PROPOSAL_ID}  -o Org1MSP -p org1-peer0 --ten
 ### Propose chaincode
 
 ```bash
-export TENANT_NAME="tenant"
+export CONSORTIUM_NAME="meetup-lfdt"
 fabriclaunch chaincode propose fabcar --mspId=Org1MSP --chaincodePath=$PWD/apps/cli/fixtures/chaincode-external \
-	--channel=multilocation --sequence=1 --tenant="${TENANT_NAME}" \
+	--channel=multilocation --sequence=1 --tenant="${CONSORTIUM_NAME}" \
 	--endorsementPolicy="OR('Org1MSP.member')"
+
+fabriclaunch chaincode propose fabcar --mspId=Org1MSP --chaincodePath=$PWD/apps/cli/fixtures/chaincode-external \
+	--channel=multilocationorg2 --sequence=1 --tenant="${CONSORTIUM_NAME}" \
+	--endorsementPolicy="AND('Org1MSP.member','Org2MSP.member')"
 
 
 ```
@@ -182,14 +200,20 @@ fabriclaunch chaincode propose fabcar --mspId=Org1MSP --chaincodePath=$PWD/apps/
 
 ```bash
 
-export CH_PROPOSAL_ID="prop_multilocation_fabcar_1_1728402430652"
+export CH_PROPOSAL_ID="prop_multilocationorg2_fabcar_1_1728489361396"
 
-fabriclaunch chaincode accept ${CH_PROPOSAL_ID} -o Org1MSP --chaincodeAddress="127.0.0.1:20000" --tenant ${TENANT_NAME}
-fabriclaunch chaincode accept ${CH_PROPOSAL_ID} -o Org2MSP --chaincodeAddress="127.0.0.1:20001" --tenant ${TENANT_NAME}
-fabriclaunch chaincode accept ${CH_PROPOSAL_ID} -o OrdererOrg --chaincodeAddress="127.0.0.1:20000" --tenant ${TENANT_NAME}
+# downloads the chaincode
+# installs the chaincode in the peers of the org
+# approves the chaincode for the org in Fabric
+# sends approval to the platform
+fabriclaunch chaincode accept ${CH_PROPOSAL_ID} -o Org1MSP --chaincodeAddress="127.0.0.1:20000" --tenant ${CONSORTIUM_NAME}
+fabriclaunch chaincode accept ${CH_PROPOSAL_ID} -o Org2MSP --chaincodeAddress="127.0.0.1:20001" --tenant ${CONSORTIUM_NAME}
+fabriclaunch chaincode accept ${CH_PROPOSAL_ID} -o OrdererOrg --chaincodeAddress="127.0.0.1:20000" --tenant ${CONSORTIUM_NAME}
 
+# fabriclaunch chaincode accept ${CH_PROPOSAL_ID} -o Org2MSP --chaincodeAddress="127.0.0.1:20001" --tenant ${CONSORTIUM_NAME}
 
-fabriclaunch chaincode commit ${CH_PROPOSAL_ID} -o Org1MSP --tenant ${TENANT_NAME}
+# commit the chaincode definition to the channel + notify the platform about the commit
+fabriclaunch chaincode commit ${CH_PROPOSAL_ID} -o Org2MSP --tenant ${CONSORTIUM_NAME}
 
 ```
 
@@ -197,10 +221,11 @@ fabriclaunch chaincode commit ${CH_PROPOSAL_ID} -o Org1MSP --tenant ${TENANT_NAM
 
 ```bash
 # 
-fabriclaunch chaincode run ${CH_PROPOSAL_ID} --tenant ${TENANT_NAME} --mode=service --download --org=Org1MSP --chaincodeAddress="127.0.0.1:20000"
-fabriclaunch chaincode logs fabcar
+fabriclaunch chaincode run ${CH_PROPOSAL_ID} --tenant ${CONSORTIUM_NAME} --mode=service --download --org=Org1MSP --chaincodeAddress="127.0.0.1:20000"
 
-fabriclaunch chaincode run ${CH_PROPOSAL_ID} --tenant ${TENANT_NAME} --mode=service --download --org=Org2MSP --chaincodeAddress="127.0.0.1:20001"
+# IN THE FUTURE, check logs
+# fabriclaunch chaincode logs fabcar 
+fabriclaunch chaincode run ${CH_PROPOSAL_ID} --tenant ${CONSORTIUM_NAME} --mode=service --download --org=Org2MSP --chaincodeAddress="127.0.0.1:20001"
 
 ```
 
@@ -209,16 +234,42 @@ fabriclaunch chaincode run ${CH_PROPOSAL_ID} --tenant ${TENANT_NAME} --mode=serv
 1. Invoke a transaction on the chaincode
 
 ```bash
-fabriclaunch chaincode invoke --channel=multilocation --name=fabcar --org=Org1MSP --call '{"function":"InitLedger","Args":[]}'
-fabriclaunch chaincode invoke --channel=multilocation --name=fabcar --org=Org2MSP --call '{"function":"InitLedger","Args":[]}'
+fabriclaunch chaincode invoke --channel=multilocationorg2 --name=fabcar --org=Org1MSP --call '{"function":"InitLedger","Args":[]}'
+fabriclaunch chaincode invoke --channel=multilocationorg2 --name=fabcar --org=Org2MSP --call '{"function":"InitLedger","Args":[]}'
+# fabriclaunch chaincode invoke --channel=multilocation --name=fabcar --org=Org2MSP --call '{"function":"InitLedger","Args":[]}'
 
 ```
 
 2. Query the ledger
 
 ```bash
-fabriclaunch chaincode query --channel=multilocation --name=fabcar --org=Org1MSP --call '{"function":"GetAllAssets","Args":[]}'
-fabriclaunch chaincode query --channel=multilocation --name=fabcar --org=Org2MSP --call '{"function":"GetAllAssets","Args":[]}'
+fabriclaunch chaincode query --channel=multilocationorg2 --name=fabcar --org=Org1MSP --call '{"function":"GetAllAssets","Args":[]}'
+fabriclaunch chaincode query --channel=multilocationorg2 --name=fabcar --org=Org2MSP --call '{"function":"GetAllAssets","Args":[]}'
+# fabriclaunch chaincode query --channel=multilocation --name=fabcar --org=Org2MSP --call '{"function":"GetAllAssets","Args":[]}'
+```
+
+
+### Clean up
+
+```bash
+
+fabriclaunch peer stop org1-peer0 --mspId Org1MSP
+
+fabriclaunch orderer stop orderer0-org1 --mspId OrdererOrg
+fabriclaunch orderer stop orderer1-org1 --mspId OrdererOrg
+fabriclaunch orderer stop orderer2-org1 --mspId OrdererOrg
+
+# in the future, we will have a command to stop the chaincode
+launchctl unload ~/Library/LaunchAgents/com.fabriclaunch.chaincode.org1msp-fabcar.plist
+
+rm ~/Library/LaunchAgents/com.fabriclaunch.orderer.ordererorg.orderer2-org1.plist
+rm ~/Library/LaunchAgents/com.fabriclaunch.orderer.ordererorg.orderer1-org1.plist
+rm ~/Library/LaunchAgents/com.fabriclaunch.orderer.ordererorg.orderer0-org1.plist
+rm ~/Library/LaunchAgents/com.fabriclaunch.peer.org1msp.org1-peer0.plist
+rm ~/Library/LaunchAgents/com.fabriclaunch.peer.org2msp.org2msp-peer0.plist
+rm ~/Library/LaunchAgents/com.fabriclaunch.chaincode.org1msp-fabcar.plist
+
+rm -rf ~/.fabriclaunch
 ```
 
 ## Finish
