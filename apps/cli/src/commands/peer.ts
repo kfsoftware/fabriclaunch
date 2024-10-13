@@ -8,6 +8,8 @@ import { ImportPeerDocument } from '../graphql/client/graphql'
 import { registry } from '../registry/registry'
 import { storage } from '../storage'
 import { DEFAULT_TENANT_NAME } from '../constants'
+import fs from 'fs'
+import { readFile } from 'fs/promises'
 
 @CommandClass({
 	name: 'peer',
@@ -258,6 +260,62 @@ export class PeerCommands {
 			renewSpinner.succeed(`Certificate renewed for peer ${peerId}`)
 		} catch (error) {
 			renewSpinner.fail(`Failed to renew certificate for peer ${peerId}: ${(error as Error).message}`)
+		}
+	}
+
+	@Command({
+		name: 'join',
+		description: 'Join a peer to a channel',
+	})
+	async joinChannel(
+		@Arg({ name: 'name', description: 'Name of the peer to join the channel' })
+		peerName: string,
+		@Flag({ name: 'mspId', alias: 'm', description: 'MSP ID of the peer', type: 'string', required: true })
+		@Flag({ name: 'channelName', alias: 'c', description: 'Name of the channel to join', type: 'string', required: true })
+		@Flag({ name: 'ordererUrl', alias: 'o', description: 'URL of the orderer to fetch the genesis block', type: 'string', required: true })
+		@Flag({ name: 'ordererTLSCert', alias: 't', description: 'Path to the orderer TLS certificate', type: 'string', required: true })
+		flags: { mspId: string; channelName: string; ordererUrl: string; ordererTLSCert: string }
+	): Promise<void> {
+		const peerId = slugify(peerName)
+		const joinSpinner = ora(`Joining peer ${peerId} to channel ${flags.channelName}`).start()
+
+		try {
+			const peers = await registry.getPeerConfigs(flags.mspId)
+			if (!peers.length) {
+				throw new Error(`No peers found for MSP ${flags.mspId}`)
+			}
+			const peerConfig = peers.find((peer) => peer.peerName === peerId)
+			if (!peerConfig) {
+				throw new Error(`Peer ${peerId} not found`)
+			}
+
+			const localOrg = new LocalOrg(flags.mspId)
+			const peer = new LocalPeer(
+				flags.mspId,
+				{
+					id: peerId,
+					externalEndpoint: peerConfig.externalEndpoint,
+					listenAddress: peerConfig.listenAddress,
+					chaincodeAddress: peerConfig.chaincodeAddress,
+					eventsAddress: peerConfig.eventsAddress,
+					operationsListenAddress: peerConfig.operationsListenAddress,
+					domainNames: [],
+				},
+				localOrg,
+				peerConfig.mode
+			)
+
+			const ordererTLSCert = await readFile(flags.ordererTLSCert, 'utf8')
+
+			await peer.joinChannel({
+				channelName: flags.channelName,
+				ordererUrl: flags.ordererUrl,
+				ordererTLSCert,
+			})
+
+			joinSpinner.succeed(`Peer ${peerId} successfully joined channel ${flags.channelName}`)
+		} catch (error) {
+			joinSpinner.fail(`Failed to join peer ${peerId} to channel ${flags.channelName}: ${(error as Error).message}`)
 		}
 	}
 }
