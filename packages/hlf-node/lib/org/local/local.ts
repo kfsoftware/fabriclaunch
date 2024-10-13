@@ -22,6 +22,45 @@ export class LocalOrg implements IOrg {
 			hosts: ['localhost', '127.0.0.1'],
 		});
 	}
+	async prepareAdminCertMSP(adminMspPath: string): Promise<void> {
+		const adminCert = await this.getAdminCert()
+		const adminTLSCert = await this.getAdminTLSCert()
+		const caConfig = await this.generator.readCAConfig()
+		// create and ensure parent folder exist
+		// cacerts/cacert.pem
+		await fs.mkdir(`${adminMspPath}/cacerts`, { recursive: true })
+		await fs.writeFile(`${adminMspPath}/cacerts/cacert.pem`, adminCert.caCert)
+		// keystore/priv_sk
+		await fs.mkdir(`${adminMspPath}/keystore`, { recursive: true })
+		await fs.writeFile(`${adminMspPath}/keystore/priv_sk`, adminCert.pk)
+		// signcerts/admin.pem
+		await fs.mkdir(`${adminMspPath}/signcerts`, { recursive: true })
+		await fs.writeFile(`${adminMspPath}/signcerts/admin.pem`, adminCert.cert)
+		// tlscacerts/tlsca.pem
+		await fs.mkdir(`${adminMspPath}/tlscacerts`, { recursive: true })
+		await fs.writeFile(`${adminMspPath}/tlscacerts/tlsca.pem`, caConfig.tlsCACert)
+		// config.yaml
+		const configYamlContents = `
+NodeOUs:
+  Enable: true
+  ClientOUIdentifier:
+    Certificate: cacerts/cacert.pem
+    OrganizationalUnitIdentifier: client
+  PeerOUIdentifier:
+    Certificate: cacerts/cacert.pem
+    OrganizationalUnitIdentifier: peer
+  AdminOUIdentifier:
+    Certificate: cacerts/cacert.pem
+    OrganizationalUnitIdentifier: admin
+  OrdererOUIdentifier:
+    Certificate: cacerts/cacert.pem
+    OrganizationalUnitIdentifier: orderer
+
+`
+
+		await fs.writeFile(`${adminMspPath}/config.yaml`, configYamlContents)
+
+	}
 	async delete() {
 		const homeDir = os.homedir();
 		const orgPath = path.join(homeDir, `.fabriclaunch/nodes/${this.mspId}`);

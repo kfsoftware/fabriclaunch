@@ -18,6 +18,9 @@ export interface IOrg {
 	init(): Promise<void>;
 	getCertificateForNode(nodeId: string, opts: CertificateOpts, type: "tls" | "sign"): Promise<Certificate>;
 	renewCertificate(nodeId: string, type: "tls" | "sign"): Promise<Certificate>;
+	getAdminCert(): Promise<Certificate>;
+	prepareAdminCertMSP(adminMspPath: string): Promise<void>;
+	getAdminTLSCert(): Promise<Certificate>;
 }
 export interface CertificateInfo {
 	subject: {

@@ -428,9 +428,6 @@ export class ChannelResolver {
 		@Ctx() ctx: ApolloContext,
 		@Arg("input") input: SetAnchorPeersInput
 	): Promise<SetAnchorPeersResponse> {
-		if (!ctx.user) {
-			throw new Error("User not found")
-		}
 		const res = await postApiBlockAnchorpeers({
 			update: {
 				anchorPeers: input.anchorPeers.map(item => ({

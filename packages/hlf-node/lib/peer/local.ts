@@ -7,6 +7,7 @@ import path from 'path'
 import slugify from 'slugify'
 import { IOrg } from '../org'
 import { PeerConfig, PeerType, StartPeerOpts } from './types'
+import { createTempDir, createTempFile } from '../utils/file'
 
 const configYamlContent = `NodeOUs:
   Enable: true
@@ -54,16 +55,23 @@ export class LocalPeer {
 		const peerDir = path.join(homeDir, `.fabriclaunch/peers/${slugify(this.opts.id)}`)
 		const mspConfigPath = path.join(peerDir, 'config')
 		const dataConfigPath = path.join(peerDir, 'data')
-
+		const adminTempDir = await createTempDir()
+		await this.org.prepareAdminCertMSP(adminTempDir.name)
 		// Set environment variables
+		const ordererTmpFile = await createTempFile()
+		await fs.writeFile(ordererTmpFile.path, ordererTLSCert)
 		const env = {
-			...process.env,
 			CORE_PEER_LOCALMSPID: this.mspId,
 			CORE_PEER_TLS_ROOTCERT_FILE: path.join(mspConfigPath, 'tlscacerts', 'cacert.pem'),
-			CORE_PEER_MSPCONFIGPATH: path.join(mspConfigPath, 'msp'),
-			ORDERER_CA: ordererTLSCert,
+			CORE_PEER_MSPCONFIGPATH: `${adminTempDir.name}`,
+			ORDERER_CA: ordererTmpFile.path,
 			CORE_PEER_ADDRESS: this.opts.externalEndpoint,
 			FABRIC_CFG_PATH: mspConfigPath,
+
+			CORE_PEER_TLS_ENABLED: `true`,
+			FABRIC_LOGGING_SPEC: 'fatal',
+			CORE_PEER_CLIENT_CONNTIMEOUT: `15s`,
+			CORE_PEER_DELIVERYCLIENT_CONNTIMEOUT: `15s`,
 		}
 
 		// Create a temporary file for the config block
@@ -71,8 +79,15 @@ export class LocalPeer {
 
 		try {
 			// Fetch the channel configuration block
-			const fetchConfigCmd = ['peer', 'channel', 'fetch', 'config', tmpConfigBlock, '-o', ordererUrl, '-c', channelName, '--tls', '--cafile', env.ORDERER_CA]
+			const fetchConfigCmd = ['peer', 'channel', 'fetch', '0', tmpConfigBlock, '-o', ordererUrl, '-c', channelName, '--tls', '--cafile', env.ORDERER_CA, ]
+			// print env formatted ready for export
+			console.log(
+				Object.entries(env)
+					.map(([key, value]) => `export ${key}="${value}"`)
+					.join('\n')
+			)
 
+			console.log(fetchConfigCmd.join(' '))
 			const fetchConfigProc = Bun.spawn(fetchConfigCmd, {
 				env,
 				cwd: dataConfigPath,
@@ -83,30 +98,23 @@ export class LocalPeer {
 				throw new Error(`Failed to fetch channel config: ${fetchConfigProc.exitCode}`)
 			}
 
-			console.log('Successfully fetched channel config')
+			// Join the channel
+			const joinChannelCmd = ['peer', 'channel', 'join', '-b', tmpConfigBlock]
 
-			// // Join the channel
-			// const joinChannelCmd = ['peer', 'channel', 'join', '-b', tmpConfigBlock]
+			const joinChannelProc = Bun.spawn(joinChannelCmd, {
+				env,
+				cwd: dataConfigPath,
+			})
 
-			// const joinChannelProc = Bun.spawn(joinChannelCmd, {
-			// 	env,
-			// 	cwd: dataConfigPath,
-			// })
-
-			// const joinChannelStatus = await joinChannelProc.exited
-			// if (joinChannelStatus !== 0) {
-			// 	throw new Error(`Failed to join channel with status code ${joinChannelProc.exitCode}`)
-			// }
-
-			// console.log(`Successfully joined channel ${channelName}`)
+			const joinChannelStatus = await joinChannelProc.exited
+			if (joinChannelStatus !== 0) {
+				throw new Error(`Failed to join channel with status code ${joinChannelProc.exitCode}`)
+			}
 		} finally {
 			// Delete the temporary config block file
 			try {
 				await fs.unlink(tmpConfigBlock)
-				console.log('Temporary config block file deleted')
-			} catch (error) {
-				console.error('Failed to delete temporary config block file:', error)
-			}
+			} catch (error) {}
 		}
 	}
 	async init(): Promise<PeerConfig> {
