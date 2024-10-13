@@ -158,4 +158,48 @@ export class OrdererCommands {
 		}
 		startingOrdererSpinner.succeed(`Started orderer ${ordererId}`)
 	}
+
+	@Command({
+		name: 'renewcert',
+		description: 'Renew the certificate of an orderer node',
+	})
+	async renewCert(
+		@Arg({ name: 'name', description: 'Name of the orderer to renew certificate for' })
+		ordererName: string,
+		@Flag({ name: 'mspId', alias: 'm', description: 'MSP of the orderer', type: 'string', required: true })
+		flags: { mspId: string }
+	): Promise<void> {
+		const ordererId = slugify(ordererName)
+		const renewSpinner = ora(`Renewing certificate for orderer ${ordererId}`).start()
+
+		try {
+			const orderers = await registry.getOrdererConfigs(flags.mspId)
+			if (!orderers.length) {
+				throw new Error(`No orderers found for MSP ${flags.mspId}`)
+			}
+			const ordererConfig = orderers.find((orderer) => orderer.ordererName === ordererId)
+			if (!ordererConfig) {
+				throw new Error(`Orderer ${ordererId} not found`)
+			}
+
+			const localOrg = new LocalOrg(flags.mspId)
+			const orderer = new LocalOrderer(
+				flags.mspId,
+				{
+					id: ordererId,
+					externalEndpoint: ordererConfig.externalEndpoint,
+					listenAddress: ordererConfig.listenAddress,
+					operationsListenAddress: ordererConfig.operationsListenAddress,
+					adminAddress: ordererConfig.adminAddress,
+					domainNames: [],
+				},
+				localOrg,
+				ordererConfig.mode
+			)
+			await orderer.renewCertificates()
+			renewSpinner.succeed(`Certificate renewed for orderer ${ordererId}`)
+		} catch (error) {
+			renewSpinner.fail(`Failed to renew certificate for orderer ${ordererId}: ${(error as Error).message}`)
+		}
+	}
 }

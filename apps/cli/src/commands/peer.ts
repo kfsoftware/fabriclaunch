@@ -215,4 +215,49 @@ export class PeerCommands {
 			registerSpinner.succeed(`Registered peer ${peerId}`)
 		}
 	}
+
+	@Command({
+		name: 'renewcert',
+		description: 'Renew the certificate of a peer node',
+	})
+	async renewCert(
+		@Arg({ name: 'name', description: 'Name of the peer to renew certificate for' })
+		peerName: string,
+		@Flag({ name: 'mspId', alias: 'm', description: 'MSP of the peer', type: 'string', required: true })
+		flags: { mspId: string }
+	): Promise<void> {
+		const peerId = slugify(peerName)
+		const renewSpinner = ora(`Renewing certificate for peer ${peerId}`).start()
+
+		try {
+			const peers = await registry.getPeerConfigs(flags.mspId)
+			if (!peers.length) {
+				throw new Error(`No peers found for MSP ${flags.mspId}`)
+			}
+			const peerConfig = peers.find((peer) => peer.peerName === peerId)
+			if (!peerConfig) {
+				throw new Error(`Peer ${peerId} not found`)
+			}
+
+			const localOrg = new LocalOrg(flags.mspId)
+			const peer = new LocalPeer(
+				flags.mspId,
+				{
+					id: peerId,
+					externalEndpoint: peerConfig.externalEndpoint,
+					listenAddress: peerConfig.listenAddress,
+					chaincodeAddress: peerConfig.chaincodeAddress,
+					eventsAddress: peerConfig.eventsAddress,
+					operationsListenAddress: peerConfig.operationsListenAddress,
+					domainNames: [],
+				},
+				localOrg,
+				peerConfig.mode
+			)
+			await peer.renewCertificates()
+			renewSpinner.succeed(`Certificate renewed for peer ${peerId}`)
+		} catch (error) {
+			renewSpinner.fail(`Failed to renew certificate for peer ${peerId}: ${(error as Error).message}`)
+		}
+	}
 }

@@ -46,7 +46,7 @@ export class LocalOrderer {
 		private opts: StartOrdererOpts,
 		private readonly org: IOrg,
 		private readonly mode: 'cmd' | 'service' | 'docker'
-	) {}
+	) { }
 	async init(): Promise<OrdererConfig> {
 		const ordererId = `${this.opts.id}.${this.org.mspId}`
 		const chunks = this.opts.externalEndpoint.split(':')
@@ -614,22 +614,22 @@ Consensus:
 					console.log(chalk.blueBright(`Orderer process exited with code ${code}`))
 				},
 			})
-			;(() => {
-				new Response(proc.stdout).body.pipeTo(
-					new WritableStream({
-						write(chunk) {
-							console.log(chalk.blueBright(Buffer.from(chunk).toString('utf-8')))
-						},
-					})
-				)
-				new Response(proc.stderr).body.pipeTo(
-					new WritableStream({
-						write(chunk) {
-							console.log(chalk.blueBright(Buffer.from(chunk).toString('utf-8')))
-						},
-					})
-				)
-			})()
+				; (() => {
+					new Response(proc.stdout).body.pipeTo(
+						new WritableStream({
+							write(chunk) {
+								console.log(chalk.blueBright(Buffer.from(chunk).toString('utf-8')))
+							},
+						})
+					)
+					new Response(proc.stderr).body.pipeTo(
+						new WritableStream({
+							write(chunk) {
+								console.log(chalk.blueBright(Buffer.from(chunk).toString('utf-8')))
+							},
+						})
+					)
+				})()
 
 			return {
 				mode: 'cmd',
@@ -885,5 +885,28 @@ WantedBy=multi-user.target
 
 	private get launchdPlistPath(): string {
 		return `${os.homedir()}/Library/LaunchAgents/${this.launchdServiceName}.plist`
+	}
+
+	async renewCertificates(): Promise<void> {
+		const ordererId = `${this.opts.id}.${this.org.mspId}`
+
+		// Renew TLS certificates
+		await this.org.renewCertificate(
+			ordererId,
+			'tls'
+		)
+
+		// Renew signing certificates
+		await this.org.renewCertificate(
+			ordererId,
+			'sign'
+		)
+
+		await this.restart()
+	}
+
+	private async restart(): Promise<void> {
+		await this.stop()
+		await this.start()
 	}
 }

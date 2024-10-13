@@ -3,7 +3,7 @@ import * as EC from "elliptic";
 import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
-import { Certificate, CertificateOpts, IOrg, OrgType } from '../types';
+import { Certificate, CertificateInfo, CertificateOpts, IOrg, OrgType } from '../types';
 import { OrgCertificateGenerator } from './certGen';
 const ec = new EC.ec("p256")
 
@@ -36,7 +36,7 @@ export class LocalOrg implements IOrg {
 		// delete orderers
 		const ordererPath = path.join(homeDir, `.fabriclaunch/orderers/${this.mspId}`);
 		await fs.rm(ordererPath, { recursive: true });
-		
+
 	}
 	async getCAConfig() {
 		const caConfig = await this.generator.readCAConfig();
@@ -85,7 +85,16 @@ export class LocalOrg implements IOrg {
 			organization: this.mspId,
 		}, 'tls')
 	}
-
+	async getExistingCryptoMaterialForNode(nodeId: string): Promise<{ sign: Certificate, tls: Certificate } | undefined> {
+		const tlsCertPath = this.getCertificatePath(nodeId, 'tls')
+		const signCertPath = this.getCertificatePath(nodeId, 'sign')
+		const tlsCert = await this.readCertificateFromDisk(tlsCertPath)
+		const signCert = await this.readCertificateFromDisk(signCertPath)
+		return {
+			tls: tlsCert,
+			sign: signCert
+		}
+	}
 	async getCertificateForNode(nodeId: string, opts: CertificateOpts, type: 'tls' | 'sign'): Promise<Certificate> {
 		const certPath = this.getCertificatePath(nodeId, type);
 
@@ -110,7 +119,7 @@ export class LocalOrg implements IOrg {
 			throw new Error('Invalid certificate type');
 		}
 
-	
+
 		const certificate = await this.generateCertificate(
 			{
 				commonName: nodeId,
@@ -253,5 +262,172 @@ export class LocalOrg implements IOrg {
 		};
 	}
 
+	async renewCertificate(nodeId: string, type: 'tls' | 'sign'): Promise<Certificate> {
+		const certPath = this.getCertificatePath(nodeId, type);
+
+		try {
+			// Read the existing certificate to get its properties
+			const existingCert = await this.readCertificateFromDisk(certPath);
+
+			// Parse the existing certificate to extract its properties
+			const parsedCert = await this.parseCertificate(existingCert.cert);
+
+			// Generate a new certificate with the same properties and existing key
+			const newCertificate = await this.regenerateCertificate(
+				{
+					commonName: parsedCert.subject.common_name,
+					hosts: parsedCert.sans,
+					organizationUnit: parsedCert.subject.organizational_unit,
+					organization: parsedCert.subject.organization,
+				},
+				type,
+				existingCert.caCert,
+				await this.getCAKey(type),
+				existingCert.pk // Reuse the existing private key
+			);
+
+			// Save the new certificate (keeping the existing private key)
+			await this.saveCertificateToDisk(certPath, {
+				...newCertificate,
+				pk: existingCert.pk
+			});
+
+			return {
+				...newCertificate,
+				pk: existingCert.pk
+			};
+		} catch (error) {
+			console.error(`Failed to renew certificate for ${nodeId} (${type}):`, error);
+			throw error;
+		}
+	}
+
+	private async parseCertificate(certPEM: string): Promise<CertificateInfo> {
+		const tmpDir = os.tmpdir();
+		const certPath = path.join(tmpDir, 'temp_cert.pem');
+
+		try {
+			// Write the certificate to a temporary file
+			await fs.writeFile(certPath, certPEM);
+
+			// Use cfssl to parse the certificate
+			const command = `cfssl certinfo -cert ${certPath}`;
+			const output = execSync(command, { encoding: 'utf-8' });
+			const certInfo = JSON.parse(output) as CertificateInfo;
+			return {
+				...certInfo,
+				sans: certInfo.sans || []
+			};
+		} catch (error) {
+			console.error('Error parsing certificate:', error);
+			throw error;
+		} finally {
+			// Clean up the temporary file
+			await fs.unlink(certPath).catch(() => { });
+		}
+	}
+
+	private async getCAKey(type: 'tls' | 'sign'): Promise<string> {
+		const caConfig = await this.generator.readCAConfig();
+		return type === 'tls' ? caConfig.tlsCAKey : caConfig.caKey;
+	}
+
+	private async regenerateCertificate(
+		options: {
+			commonName: string;
+			hosts: string[];
+			organizationUnit: string;
+			organization: string;
+		},
+		profile: "tls" | "sign",
+		caCert: string,
+		caKey: string,
+		existingKey: string
+	): Promise<Omit<Certificate, 'pk'>> {
+		const tmpDir = os.tmpdir();
+		const caCertPath = path.join(tmpDir, 'ca.pem');
+		const caKeyPath = path.join(tmpDir, 'ca-key.pem');
+		const existingKeyPath = path.join(tmpDir, 'existing-key.pem');
+		await fs.writeFile(caCertPath, caCert);
+		await fs.writeFile(caKeyPath, caKey);
+		await fs.writeFile(existingKeyPath, existingKey);
+
+		const outputDir = path.join(tmpDir, 'cert');
+		await fs.mkdir(outputDir, { recursive: true });
+
+		// Create a temporary cert-signing-config.json
+		const certSigningConfig = {
+			signing: {
+				default: {
+					expiry: "8760h"
+				},
+				profiles: {
+					"sign": {
+						"usages": [
+							"signing",
+							"key encipherment",
+							"cert sign",
+							"digital signature"
+						],
+						"expiry": "175200h"
+					},
+					"tls": {
+						"usages": [
+							"signing",
+							"key encipherment",
+							"server auth",
+							"client auth"
+						],
+						"expiry": "175200h"
+					}
+				}
+			}
+		};
+		const certSigningConfigPath = path.join(tmpDir, 'cert-signing-config.json');
+		await fs.writeFile(certSigningConfigPath, JSON.stringify(certSigningConfig));
+
+		// Create a temporary CSR JSON file
+		const csrJson = {
+			CN: options.commonName,
+			hosts: options.hosts,
+			names: [
+				{
+					O: options.organization,
+					OU: options.organizationUnit
+				}
+			],
+			key: {
+				algo: "ecdsa",
+				size: 256
+			}
+		};
+		const csrJsonPath = path.join(tmpDir, 'csr.json');
+		await fs.writeFile(csrJsonPath, JSON.stringify(csrJson));
+		// Generate CSR using the existing key
+		const csrCommand = `cfssl gencsr -key ${existingKeyPath} ${csrJsonPath} | cfssljson -bare ${path.join(outputDir, 'csr')}`;
+		execSync(csrCommand, { stdio: 'ignore' });
+		const signCommand = `cfssl sign \
+			-ca=${caCertPath} \
+			-ca-key=${caKeyPath} \
+			-config=${certSigningConfigPath} \
+			-profile="${profile}" \
+			${path.join(outputDir, 'csr.csr')} | cfssljson -bare ${path.join(outputDir, 'client')}`;
+		execSync(signCommand, { stdio: 'ignore' });
+
+		const generatedCert = await fs.readFile(path.join(outputDir, 'client.pem'), 'utf8');
+
+		// Clean up temporary files
+		await fs.unlink(caCertPath);
+		await fs.unlink(caKeyPath);
+		await fs.unlink(existingKeyPath);
+		await fs.unlink(certSigningConfigPath);
+		await fs.unlink(csrJsonPath);
+		await fs.unlink(path.join(outputDir, 'csr.csr'));
+
+		return {
+			cert: generatedCert,
+			caCert: caCert
+		};
+	}
 
 }
