@@ -45,7 +45,7 @@ export class LocalPeer {
 		public mspId: string,
 		private readonly opts: StartPeerOpts,
 		private readonly org: IOrg,
-		private readonly mode: 'cmd' | 'service' | 'docker'
+		private readonly mode: 'cmd' | 'service' | 'docker',
 	) {}
 
 	async joinChannel(opts: { channelName: string; ordererUrl: string; ordererTLSCert: string }): Promise<void> {
@@ -72,6 +72,9 @@ export class LocalPeer {
 			FABRIC_LOGGING_SPEC: 'fatal',
 			CORE_PEER_CLIENT_CONNTIMEOUT: `15s`,
 			CORE_PEER_DELIVERYCLIENT_CONNTIMEOUT: `15s`,
+
+			CORE_PEER_GOSSIP_ORGLEADER: `true`,
+			CORE_PEER_GOSSIP_USELEADERELECTION: `false`,
 		}
 
 		// Create a temporary file for the config block
@@ -79,7 +82,7 @@ export class LocalPeer {
 
 		try {
 			// Fetch the channel configuration block
-			const fetchConfigCmd = ['peer', 'channel', 'fetch', '0', tmpConfigBlock, '-o', ordererUrl, '-c', channelName, '--tls', '--cafile', env.ORDERER_CA, ]
+			const fetchConfigCmd = ['peer', 'channel', 'fetch', '0', tmpConfigBlock, '-o', ordererUrl, '-c', channelName, '--tls', '--cafile', env.ORDERER_CA]
 			// print env formatted ready for export
 			console.log(
 				Object.entries(env)
@@ -1351,6 +1354,11 @@ WantedBy=multi-user.target
 
 	private buildPeerEnvironment(mspConfigPath: string): NodeJS.ProcessEnv {
 		return {
+			...(this.opts.env || []).reduce((acc, cur) => {
+				const [key, value] = cur.split('=')
+				acc[key] = value
+				return acc
+			}, {}),
 			CORE_PEER_MSPCONFIGPATH: mspConfigPath,
 			FABRIC_CFG_PATH: mspConfigPath,
 			CORE_PEER_TLS_ROOTCERT_FILE: `${mspConfigPath}/tlscacerts/cacert.pem`,

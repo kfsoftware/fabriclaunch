@@ -15,6 +15,7 @@ export interface StartPeerOpts {
 	operationsListenAddress: string;
 	externalEndpoint: string;
 	domainNames?: string[];
+	env?: string[];
 }
 export interface PeerConfig {
 	mode: 'cmd' | 'service' | 'docker';

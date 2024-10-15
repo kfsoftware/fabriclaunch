@@ -64,7 +64,6 @@ export class PeerCommands {
 		peerName: string,
 		@Flag({ name: 'mspId', alias: 'm', description: 'MSP to create the peer for', type: 'string', required: true })
 		@Flag({ name: 'type', alias: 't', description: 'Type of peer to create', type: 'string', required: false })
-		// add flags for external endpoint, listen address, chaincode address, events address, operations listen address
 		@Flag({ name: 'externalEndpoint', alias: 'e', description: 'External endpoint for the peer, example: 0.0.0.0:7051', type: 'string', required: true })
 		@Flag({ name: 'listenAddress', alias: 'l', description: 'Listen address for the peer, example: 0.0.0.0:7051', type: 'string', required: true })
 		@Flag({ name: 'chaincodeAddress', alias: 'c', description: 'Chaincode address for the peer, example: 0.0.0.0:7052', type: 'string', required: true })
@@ -73,9 +72,8 @@ export class PeerCommands {
 		@Flag({ name: 'region', alias: 'r', description: 'Region for the peer', type: 'string', required: true })
 		@Flag({ name: 'mode', alias: 'm', description: 'Mode for the peer', type: 'string', required: true })
 		@Flag({ name: 'tenant', alias: 't', description: 'Tenant for the peer', type: 'string', required: false })
-		// optional array of hosts
-		// optional array of ipAddresses
 		@Flag({ name: 'hosts', alias: 'h', description: 'Hosts for the peer', type: 'string[]', required: false })
+		@Flag({ name: 'env', description: 'Environment variables for the peer', type: 'string[]', required: false })
 		flags: {
 			tenant: string
 			mspId: string
@@ -88,6 +86,7 @@ export class PeerCommands {
 			eventsAddress: string
 			operationsListenAddress: string
 			hosts?: string[]
+			env?: string[]
 		}
 	): Promise<void> {
 		const peerId = slugify(peerName)
@@ -123,6 +122,7 @@ export class PeerCommands {
 				eventsAddress: flags.eventsAddress,
 				operationsListenAddress: flags.operationsListenAddress,
 				domainNames: flags.hosts,
+				env: flags.env,
 			},
 			localOrg,
 			flags.mode
