@@ -9,7 +9,7 @@ export interface Certificate {
 export interface CertificateOpts {
 	dnsNames: string[];
 	organizationUnit: string;
-	organization: string;
+	organization?: string;
 	ipAddresses: string[];
 }
 export interface IOrg {

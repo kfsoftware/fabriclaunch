@@ -14,9 +14,10 @@ export async function newConnectOptions(
 	credentials: Uint8Array,
 	privateKeyPem: string
 ): Promise<ConnectOptions> {
+	const identity = await newIdentity(mspId, credentials)
 	return {
 		client,
-		identity: await newIdentity(mspId, credentials),
+		identity,
 		signer: await newSigner(privateKeyPem),
 		// Default timeouts for different gRPC calls
 		evaluateOptions: () => {
