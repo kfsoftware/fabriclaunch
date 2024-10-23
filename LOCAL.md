@@ -29,6 +29,21 @@ sudo chmod +x /usr/local/bin/cfssl
 sudo chmod +x /usr/local/bin/cfssljson
 ```
 
+## Self Host FabricLaunch
+
+```bash
+cd apps/web
+bun dev
+```
+
+
+## Compile the CLI
+
+```bash
+export API_URL="http://localhost:3000/api"
+bun build src/index.ts --compile --outfile=./fabriclaunch --define process.env.API_URL="$API_URL"
+sudo mv ./fabriclaunch /usr/local/bin/fabriclaunch
+```
 ## Step 1: Creation of Org1MSP
 
 ### Create local CA for Org1MSP
@@ -40,7 +55,7 @@ sudo chmod +x /usr/local/bin/cfssljson
 # Placeholder for Org1MSP CA setup commands
 fabriclaunch auth login
 # generate a name for a consortium between important companies
-export CONSORTIUM_NAME="local"
+export CONSORTIUM_NAME="morganstate"
 
 fabriclaunch org create Org1MSP --type local
 fabriclaunch org register Org1MSP --tenant ${CONSORTIUM_NAME}
@@ -66,10 +81,15 @@ fabriclaunch peer create org1-peer0 --tenant ${CONSORTIUM_NAME} --mode=service -
   --operationsListenAddress="0.0.0.0:7054" \
   -h localhost -h "${PUBLIC_IP}"
 
-fabriclaunch peer create org1-peer0 --mspId Org1MSP 
 # fabriclaunch peer stop org1-peer0 --mspId Org1MSP
 
 ```
+Verify that the peer is running by checking the logs:
+```bash
+# -k means insecure
+curl https://localhost:7051 -k 
+```
+
 
 ## Step 2: Creation of OrdererOrg
 
@@ -80,7 +100,7 @@ fabriclaunch peer create org1-peer0 --mspId Org1MSP
 
 ```bash
 
-export CONSORTIUM_NAME="local"
+export CONSORTIUM_NAME="morganstate"
 fabriclaunch org create OrdererOrg --type local
 fabriclaunch org register OrdererOrg --tenant ${CONSORTIUM_NAME}
 
@@ -93,7 +113,7 @@ fabriclaunch org register OrdererOrg --tenant ${CONSORTIUM_NAME}
 3. Start the orderer nodes
 
 ```bash
-export CONSORTIUM_NAME="local"
+export CONSORTIUM_NAME="morganstate"
 export PUBLIC_IP="orderer0-org1.localho.st"
 fabriclaunch orderer create orderer0-org1 --tenant ${CONSORTIUM_NAME} --mode=service --region=nyc --mspId OrdererOrg \
   --externalEndpoint="${PUBLIC_IP}:7060" \
@@ -133,7 +153,7 @@ fabriclaunch orderer create orderer2-org1 --tenant ${CONSORTIUM_NAME} --mode=ser
 3. Join the peer to the channel
 
 ```bash
-export CONSORTIUM_NAME="local"
+export CONSORTIUM_NAME="morganstate"
 fabriclaunch channel propose multilocation \
 	--mspId=Org1MSP \
   --tenant ${CONSORTIUM_NAME} \
@@ -176,7 +196,7 @@ fabriclaunch channel join ${CHANNEL_PROPOSAL_ID}  -o Org2MSP -p org2msp-peer0 --
 ### Propose chaincode
 
 ```bash
-export CONSORTIUM_NAME="local"
+export CONSORTIUM_NAME="morganstate"
 fabriclaunch chaincode propose fabcar --mspId=Org1MSP --chaincodePath=$PWD/apps/cli/fixtures/chaincode-external \
 	--channel=multilocation --sequence=2 --tenant="${CONSORTIUM_NAME}" \
 	--endorsementPolicy="OR('Org1MSP.member')"
