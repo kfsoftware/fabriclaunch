@@ -1,0 +1,9 @@
+mutation createConsortium($input: CreateConsortiumInput!) {
+	createConsortium(input: $input) {
+		id
+		name
+		slug
+		createdAt
+		updatedAt
+	}
+}

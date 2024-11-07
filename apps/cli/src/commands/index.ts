@@ -5,3 +5,4 @@ export * from './auth';
 export * from './channel';
 export * from './consensus';
 export * from './chaincode';
+export * from './consortium';

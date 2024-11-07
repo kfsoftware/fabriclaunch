@@ -18,6 +18,7 @@ const documents = {
     "mutation ApproveChannelProposal($input: ApproveProposalInput!) {\n  approveChannelProposal(input: $input) {\n    id\n    proposalId\n    approvedAt\n  }\n}": types.ApproveChannelProposalDocument,
     "mutation commitChaincodeProposal($input: CommitChaincodeProposalInput!) {\n  commitChaincodeProposal(input: $input) {\n    id\n    channelName\n    chaincodeName\n    version\n    endorsementPolicy\n    pdc\n    codeZipHash\n  }\n}": types.CommitChaincodeProposalDocument,
     "mutation createAudit($input: CreateAuditLogInput!) {\n  createAuditLog(input: $input) {\n    id\n    tenantId\n    userId\n    logType\n    details\n    createdAt\n  }\n}": types.CreateAuditDocument,
+    "mutation createConsortium($input: CreateConsortiumInput!) {\n  createConsortium(input: $input) {\n    id\n    name\n    slug\n    createdAt\n    updatedAt\n  }\n}": types.CreateConsortiumDocument,
     "query GetChaincodeProposal($tenantSlug: String!, $proposalSlug: String!) {\n  proposal: chaincodeProposal(\n    proposalSlug: $proposalSlug\n    tenantSlug: $tenantSlug\n  ) {\n    id\n    channelName\n    chaincodeName\n    version\n    sequence\n    endorsementPolicy\n    pdc\n    codeZipHash\n  }\n}": types.GetChaincodeProposalDocument,
     "query GetChannelProposal($tenantSlug: String!, $proposalSlug: String!) {\n  proposal: channelProposal(proposalSlug: $proposalSlug, tenantSlug: $tenantSlug) {\n    id\n    channelName\n    channelData {\n      peerOrgs\n      ordererOrgs\n      channelTx\n      channelConfig\n    }\n  }\n}": types.GetChannelProposalDocument,
     "query orgs($tenantSlug: String!) {\n  orgs(tenantSlug: $tenantSlug) {\n    id\n    mspId\n    signCACert\n    tlsCACert\n  }\n}": types.OrgsDocument,
@@ -45,6 +46,10 @@ export function graphql(source: "mutation commitChaincodeProposal($input: Commit
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(source: "mutation createAudit($input: CreateAuditLogInput!) {\n  createAuditLog(input: $input) {\n    id\n    tenantId\n    userId\n    logType\n    details\n    createdAt\n  }\n}"): typeof import('./graphql').CreateAuditDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "mutation createConsortium($input: CreateConsortiumInput!) {\n  createConsortium(input: $input) {\n    id\n    name\n    slug\n    createdAt\n    updatedAt\n  }\n}"): typeof import('./graphql').CreateConsortiumDocument;
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */

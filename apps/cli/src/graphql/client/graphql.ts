@@ -107,11 +107,24 @@ export type CommitChaincodeProposalInput = {
   tenantSlug: Scalars['String']['input'];
 };
 
+export type Consortium = {
+  __typename?: 'Consortium';
+  createdAt: Scalars['DateTimeISO']['output'];
+  id: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+  slug: Scalars['String']['output'];
+  updatedAt: Scalars['DateTimeISO']['output'];
+};
+
 export type CreateAuditLogInput = {
   details: Scalars['JSONObject']['input'];
   logType: AuditLogType;
   mspId: Scalars['String']['input'];
   tenantSlug: Scalars['String']['input'];
+};
+
+export type CreateConsortiumInput = {
+  name: Scalars['String']['input'];
 };
 
 export type HostPort = {
@@ -125,6 +138,7 @@ export type Mutation = {
   approveChannelProposal: ChannelProposalApproval;
   commitChaincodeProposal: ChaincodeProposal;
   createAuditLog: AuditLog;
+  createConsortium: Consortium;
   importOrderer: Orderer;
   importOrg: Org;
   importPeer: Peer;
@@ -151,6 +165,11 @@ export type MutationCommitChaincodeProposalArgs = {
 
 export type MutationCreateAuditLogArgs = {
   input: CreateAuditLogInput;
+};
+
+
+export type MutationCreateConsortiumArgs = {
+  input: CreateConsortiumInput;
 };
 
 
@@ -344,6 +363,13 @@ export type CreateAuditMutationVariables = Exact<{
 
 export type CreateAuditMutation = { __typename?: 'Mutation', createAuditLog: { __typename?: 'AuditLog', id: string, tenantId: string, userId: string, logType: AuditLogType, details: any, createdAt: any } };
 
+export type CreateConsortiumMutationVariables = Exact<{
+  input: CreateConsortiumInput;
+}>;
+
+
+export type CreateConsortiumMutation = { __typename?: 'Mutation', createConsortium: { __typename?: 'Consortium', id: string, name: string, slug: string, createdAt: any, updatedAt: any } };
+
 export type GetChaincodeProposalQueryVariables = Exact<{
   tenantSlug: Scalars['String']['input'];
   proposalSlug: Scalars['String']['input'];
@@ -467,6 +493,17 @@ export const CreateAuditDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<CreateAuditMutation, CreateAuditMutationVariables>;
+export const CreateConsortiumDocument = new TypedDocumentString(`
+    mutation createConsortium($input: CreateConsortiumInput!) {
+  createConsortium(input: $input) {
+    id
+    name
+    slug
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<CreateConsortiumMutation, CreateConsortiumMutationVariables>;
 export const GetChaincodeProposalDocument = new TypedDocumentString(`
     query GetChaincodeProposal($tenantSlug: String!, $proposalSlug: String!) {
   proposal: chaincodeProposal(
