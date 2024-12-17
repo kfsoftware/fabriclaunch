@@ -1,20 +1,20 @@
-import { LocalOrg, type OrgType } from "@repo/hlf-node";
-import chalk from 'chalk';
-import ora from "ora";
-import * as z from "zod";
-import { Arg, Command, CommandClass, Flag } from "../cli-decorators";
-import { execute } from "../graphql/client/execute";
-import { ImportOrgDocument } from "../graphql/client/graphql";
-import { storage } from "../storage";
-import { DEFAULT_TENANT_NAME } from "../constants";
+import { LocalOrg, type OrgType } from '@repo/hlf-node'
+import chalk from 'chalk'
+import ora from 'ora'
+import * as z from 'zod'
+import { Arg, Command, CommandClass, Flag } from '../cli-decorators'
+import { execute } from '../graphql/client/execute'
+import { ImportOrgDocument } from '../graphql/client/graphql'
+import { storage } from '../storage'
+import { DEFAULT_TENANT_NAME } from '../constants'
 
 // create schema for org create command
 const orgCreateSchema = z.object({
-	type: z.enum(["local", "vault"]),
-	mspId: z.string()
+	type: z.enum(['local', 'vault']),
+	mspId: z.string(),
 })
 @CommandClass({
-	name: 'org'
+	name: 'org',
 })
 export class OrgCommands {
 	@Command({
@@ -54,8 +54,8 @@ export class OrgCommands {
 					mspId: mspId,
 					tenantSlug,
 					signCACert: caConfig.caCert,
-					tlsCACert: caConfig.tlsCACert
-				}
+					tlsCACert: caConfig.tlsCACert,
+				},
 			})
 			if (res.errors && res.errors.length > 0) {
 				spinner.fail('Error creating local org')
@@ -78,20 +78,16 @@ export class OrgCommands {
 		mspId: string,
 		@Flag({ name: 'type', alias: 't', description: 'Type of org', required: true, type: 'string' })
 		@Flag({ name: 'tenant', description: 'Tenant to accept the chaincode proposal', type: 'string', required: false })
-		flags: { type: OrgType, tenant?: string }
+		flags: { type: OrgType; tenant?: string }
 	): Promise<void> {
 		if (!flags.type) {
 			console.log(chalk.red('Org type is required'))
 			return
 		}
 
-		if (!await storage.checkIfLoggedIn()) {
-			console.log(chalk.red('Please login first'))
-			return
-		}
 		const orgResult = orgCreateSchema.safeParse({
 			type: flags.type,
-			mspId: mspId
+			mspId: mspId,
 		})
 		if (!orgResult.success) {
 			console.log(chalk.red(orgResult.error.errors[0].message))
@@ -115,15 +111,35 @@ export class OrgCommands {
 					spinner.fail('Error creating local org')
 					console.log(chalk.red(error))
 				}
-				break;
+				break
 			case 'vault':
 				console.log('Creating vault org')
-				break;
+				break
 			default:
 				console.log(chalk.red('Invalid org type'))
-				break;
+				break
 		}
 	}
 
+	@Command({
+		name: 'show',
+		description: 'Show organization details',
+	})
+	async showOrg(
+		@Arg({ name: 'mspId', description: 'MSP ID of the organization to show' })
+		mspId: string
+	): Promise<void> {
+		const localOrg = new LocalOrg(mspId)
+		const spinner = ora(`Fetching org details for: ${mspId}`).start()
+		try {
+			const caConfig = await localOrg.getCAConfig()
+			spinner.succeed('Org details fetched')
+			console.log(chalk.bold('\nOrganization Details:'))
+			console.log(chalk.cyan('MSP ID:'), mspId)
+			console.log(chalk.cyan('CA Certificate: \n'), caConfig.caCert)
+			console.log(chalk.cyan('TLS CA Certificate: \n'), caConfig.tlsCACert)
+		} catch (error) {
+			spinner.fail(`Error fetching org details: ${error}`)
+		}
+	}
 }
-

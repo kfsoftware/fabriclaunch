@@ -83,10 +83,7 @@ export class OrdererCommands {
 	): Promise<void> {
 		const ordererId = slugify(ordererName)
 		const initSpinner = ora(`Initializing orderer ${ordererId}`).start()
-		if (!(await storage.checkIfLoggedIn())) {
-			initSpinner.fail('Please login first')
-			return
-		}
+
 		if (flags.mode !== 'cmd' && flags.mode !== 'service') {
 			initSpinner.fail(chalk.red(`Invalid mode ${flags.mode}`))
 			return
@@ -117,24 +114,27 @@ export class OrdererCommands {
 		)
 		const ordererConfig = await orderer.init()
 		initSpinner.succeed(`Initialized orderer ${ordererId}`)
-		const registerSpinner = ora(`Registering orderer ${ordererId}`).start()
-		const res = await execute(ImportOrdererDocument, {
-			input: {
-				mspId: flags.mspId,
-				name: ordererId,
-				signCert: ordererConfig.signCert,
-				tenantSlug,
-				region: flags.region,
-				tlsCert: ordererConfig.tlsCert,
-				url: flags.externalEndpoint,
-			},
-		})
-		if (res.errors && res.errors.length > 0) {
-			registerSpinner.fail(res.errors[0].message)
-			return
-		} else {
-			registerSpinner.succeed(`Registered orderer ${ordererId}`)
+		if (await storage.checkIfLoggedIn()) {
+			const registerSpinner = ora(`Registering orderer ${ordererId}`).start()
+			const res = await execute(ImportOrdererDocument, {
+				input: {
+					mspId: flags.mspId,
+					name: ordererId,
+					signCert: ordererConfig.signCert,
+					tenantSlug,
+					region: flags.region,
+					tlsCert: ordererConfig.tlsCert,
+					url: flags.externalEndpoint,
+				},
+			})
+			if (res.errors && res.errors.length > 0) {
+				registerSpinner.fail(res.errors[0].message)
+				return
+			} else {
+				registerSpinner.succeed(`Registered orderer ${ordererId}`)
+			}
 		}
+
 		await registry.storeOrdererConfig(flags.mspId, ordererConfig)
 		const startingOrdererSpinner = ora(`Starting orderer ${ordererId}`).start()
 		if (flags.mode === 'cmd' && (await registry.isNodeLocked(flags.mspId, ordererConfig.ordererName, 'orderer'))) {
