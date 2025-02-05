@@ -67,14 +67,10 @@ export class LocalPeer {
 			ORDERER_CA: ordererTmpFile.path,
 			CORE_PEER_ADDRESS: this.opts.externalEndpoint,
 			FABRIC_CFG_PATH: mspConfigPath,
-
 			CORE_PEER_TLS_ENABLED: `true`,
-			FABRIC_LOGGING_SPEC: 'fatal',
+			FABRIC_LOGGING_SPEC: 'info',
 			CORE_PEER_CLIENT_CONNTIMEOUT: `15s`,
 			CORE_PEER_DELIVERYCLIENT_CONNTIMEOUT: `15s`,
-
-			CORE_PEER_GOSSIP_ORGLEADER: `true`,
-			CORE_PEER_GOSSIP_USELEADERELECTION: `false`,
 		}
 
 		// Create a temporary file for the config block
@@ -84,13 +80,6 @@ export class LocalPeer {
 			// Fetch the channel configuration block
 			const fetchConfigCmd = ['peer', 'channel', 'fetch', '0', tmpConfigBlock, '-o', ordererUrl, '-c', channelName, '--tls', '--cafile', env.ORDERER_CA]
 			// print env formatted ready for export
-			console.log(
-				Object.entries(env)
-					.map(([key, value]) => `export ${key}="${value}"`)
-					.join('\n')
-			)
-
-			console.log(fetchConfigCmd.join(' '))
 			const fetchConfigProc = Bun.spawn(fetchConfigCmd, {
 				env,
 				cwd: dataConfigPath,
